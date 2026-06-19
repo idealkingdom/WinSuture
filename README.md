@@ -8,9 +8,9 @@ The entire tool is designed to run locally (fully offline) if the subfolders are
 
 ## ⚡ Key Highlights
 * **Main Menu Landing Screen**: A unified startup dashboard that integrates admin checks, system details, and the Safe Mode recommendation warning directly on launch.
-* **Category Screens**: Dedicated visual screens for **Optimizations** (`OPT`), **Repairs** (`REP`), and **Backup & Restore** (`BKP`) to prevent terminal clutter and ensure no items scroll off the viewport.
+* **Category Screens**: Dedicated visual screens for **Optimizations** (`OPT`) and **Repairs** (`REP`) to prevent terminal clutter and ensure no items scroll off the viewport.
 * **Dual-Column Layout**: Items within each category screen are grouped cleanly under descriptive subheaders (e.g., `Gaming`, `Networking`, `System UI`) and formatted side-by-side.
-* **Precedence Safety**: Backup tasks (creating restore points, registry exports, hosts backups) are prioritized and execute *first* before any system modifications are run.
+* **Precedence Safety**: Backup tasks (creating restore points, registry exports, hosts backups) are prompted dynamically before any system modifications are run and execute *first*.
 * **Safe Mode Status**: Detects if the system is running in Windows Normal Mode versus Safe Mode and dynamically displays warning contexts directly on the Main Menu landing page.
 * **Compatibility**: All Write-Host formatting parameter conflicts have been resolved to support Windows PowerShell 5.1 and PowerShell Core.
 

@@ -3,7 +3,7 @@
 Welcome to the **WinSuture Guide**. This document contains the details for the **Top 20 Performance Optimizations & Enhancements** and the **Top 20 System Fixes & Repairs** for Windows 10 and Windows 11.
 
 > [!WARNING]
-> Modifying the registry and system configuration files can cause system instability if done incorrectly. Always run **Option B (Advanced Backup Suite)** before applying any tweaks.
+> Modifying the registry and system configuration files can cause system instability if done incorrectly. Always review and select the recommended backup tasks when prompted before executing tweaks.
 
 > [!IMPORTANT]
 > **Safe Mode Recommendation:** It is highly recommended to run WinSuture in **Safe Mode (Minimal or Network)**. This prevents active processes, locks on system hives, and third-party antivirus engines from interfering with registry modifications and troubleshooting repairs.
@@ -20,7 +20,7 @@ Welcome to the **WinSuture Guide**. This document contains the details for the *
 
 ## 🛡️ Safety & Advanced Backups Suite
 
-Instead of manual configuration, you can enter **`B`** in the WinSuture CLI. The script will automatically execute the **Advanced Backups Suite**:
+Before executing any selected system optimization or repair tasks, WinSuture will automatically present a **Pre-Run Backup Selection** menu. You can choose to run any of the following safety backups:
 1. **System Restore Point**: Calls PowerShell checkpoint commands to create a Windows rollback point.
 2. **Registry Hive Backup**: Automatically exports `HKCU` (Current User), `HKLM\SOFTWARE` (Machine Software policies), and `HKLM\SYSTEM` (Machine Kernel drivers) to `.reg` file hives on your Desktop inside a timestamped folder.
 3. **hosts File Backup**: Backs up the local hosts routing lookup file to `hosts.bak`.
@@ -291,7 +291,7 @@ Set-ExecutionPolicy Bypass -Scope Process -Force
 * **Main Menu Landing Screen**: When launching WinSuture, it opens directly to the Main Menu. If the script is running in Windows Normal Mode, a warning about running in Safe Mode is displayed here. From the Main Menu:
   * Select **`1`** (or type **`OPT`**) to open the **Optimizations** screen.
   * Select **`2`** (or type **`REP`**) to open the **Repairs** screen.
-  * Select **`3`** (or type **`BKP`**) to open the **Backup & Restore** screen.
+  * Select **`3`** (or type **`RST`**) to open the **System Restores** screen.
   * Select **`R`** to run all selected tasks.
   * Select **`C`** to clear all selections.
   * Select **`Q`** to exit the utility.
@@ -302,8 +302,7 @@ Set-ExecutionPolicy Bypass -Scope Process -Force
   * Enter `P1` to toggle **Basic Optimizations** (safe UI & background adjustments).
   * Enter `P2` to toggle **Advanced Optimizations** (high-performance gaming & latency configurations).
   * Enter `P3` to toggle **System Repairs & Troubleshooting** (Winsock, SFC, DISM, DNS resets).
-* **Advanced Backups Suite (`B`)**: Automatically runs and consolidates the four backup scripts (`43` to `46`), grouping all exported files into a single timestamped directory on your Desktop.
 * **Scan System (`S`)**: Initiates the **"AeroDiagnostics & Performance Vulnerability Scan"**. This queries the active system registry and services to identify unoptimized configurations, then recommends which improvements to select.
 * **Clear Selections (`C`)**: Cleans the checkmarks off all items.
-* **Run Selected (`R`)**: Safely executes all checked actions. If any selected items are marked as high-risk, a security confirmation prompt will appear.
+* **Run Selected (`R`)**: Safely executes all checked actions. First, a **Pre-Run Backup Selection** prompt will appear to select which backups to run. If any selected items are marked as high-risk, a security confirmation prompt will also appear.
 * **Quit (`Q`)**: Exits the utility.
