@@ -7,7 +7,8 @@ The entire tool is designed to run locally (fully offline) if the subfolders are
 ---
 
 ## ⚡ Key Highlights
-* **Category Groupings**: All tweaks and repairs are categorized cleanly under descriptive subheaders (e.g. `Gaming`, `Networking`, `System UI`) inside a dual-column interactive dashboard.
+* **Category Screens (Tabs)**: The interactive CLI menu is split into three clean screens selectable via the main menu: **Optimizations** (`OPT`), **Repairs** (`REP`), and **Backup & Restore** (`BKP`). This prevents terminal clutter and ensures no items scroll off the viewport.
+* **Dual-Column Layout**: Items within each screen are grouped cleanly under descriptive subheaders (e.g., `Gaming`, `Networking`, `System UI`) and formatted side-by-side.
 * **Precedence Safety**: Backup tasks (creating restore points, registry exports, hosts backups) are prioritized and execute *first* before any system modifications are run.
 * **Safe Mode Guard**: Detects if the system is running in Windows Normal Mode and prompts a warning detailing the benefits of Safe Mode before allowing you to proceed.
 * **Compatibility**: All Write-Host formatting parameter conflicts have been resolved to support Windows PowerShell 5.1 and PowerShell Core.

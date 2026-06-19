@@ -154,6 +154,24 @@ function Draw-Header {
     Write-Host "========================================================================================" -ForegroundColor Cyan
     Write-Host "                                WIN SUTURE POWER CLI TOOL                               " -ForegroundColor White
     Write-Host "========================================================================================" -ForegroundColor Cyan
+    
+    # Render Screen Tabs
+    $tabO = if ($script:activeScreen -eq "O") { "[*] OPTIMIZATIONS" } else { "    OPTIMIZATIONS" }
+    $tabR = if ($script:activeScreen -eq "R") { "[*] REPAIRS      " } else { "    REPAIRS      " }
+    $tabB = if ($script:activeScreen -eq "B") { "[*] BACKUP & REST" } else { "    BACKUP & REST" }
+    
+    $colorO = if ($script:activeScreen -eq "O") { "Green" } else { "Gray" }
+    $colorR = if ($script:activeScreen -eq "R") { "Green" } else { "Gray" }
+    $colorB = if ($script:activeScreen -eq "B") { "Green" } else { "Gray" }
+    
+    Write-Host "  " -NoNewline
+    Write-Host $tabO -ForegroundColor $colorO -NoNewline
+    Write-Host "  |  " -ForegroundColor Cyan -NoNewline
+    Write-Host $tabR -ForegroundColor $colorR -NoNewline
+    Write-Host "  |  " -ForegroundColor Cyan -NoNewline
+    Write-Host $tabB -ForegroundColor $colorB
+    
+    Write-Host "========================================================================================" -ForegroundColor Cyan
     if (-not $isSafeMode) {
         Write-Host "  [!] RECOMMENDED: Run WinSuture in Safe Mode to avoid file locks and service conflicts." -ForegroundColor Yellow
         Write-Host "========================================================================================" -ForegroundColor Cyan
@@ -167,6 +185,9 @@ function Draw-Header {
     }
 }
 
+# Active tab state: O = Optimizations, R = Repairs, B = Backup & Restore
+$script:activeScreen = "O"
+
 # Main input loop
 $alertMessage = ""
 $alertColor = "Yellow"
@@ -174,127 +195,71 @@ $alertColor = "Yellow"
 while ($true) {
     Draw-Header -subtitle "Presets: P1 (Basic Opts) | P2 (Advanced Opts) | P3 (System Repairs) | C (Clear All)"
     
-    # Generate left and right column layout lines dynamically
-    $optLines = Get-LayoutLines -items $opts
-    $repLines = Get-LayoutLines -items $reps
+    # Generate layout lines for the active screen
+    $lines = @()
+    if ($script:activeScreen -eq "O") {
+        $lines = Get-LayoutLines -items $opts
+    }
+    elseif ($script:activeScreen -eq "R") {
+        $lines = Get-LayoutLines -items $reps
+    }
+    elseif ($script:activeScreen -eq "B") {
+        $lines = Get-LayoutLines -items $backups
+    }
     
-    # Print the options in a side-by-side 2-column layout
+    # Render in a clean 2-column layout (split in half)
     $leftWidth = 46
-    $maxRows = [Math]::Max($optLines.Count, $repLines.Count)
-    for ($i = 0; $i -lt $maxRows; $i++) {
-        $opt = if ($i -lt $optLines.Count) { $optLines[$i] } else { $null }
-        $rep = if ($i -lt $repLines.Count) { $repLines[$i] } else { $null }
+    $half = [Math]::Ceiling($lines.Count / 2)
+    for ($i = 0; $i -lt $half; $i++) {
+        $left = $lines[$i]
+        $right = if ($i + $half -lt $lines.Count) { $lines[$i + $half] } else { $null }
         
         # Format left column
-        $optText = ""
-        $optColor = "Gray"
-        if ($null -ne $opt) {
-            if ($opt.Type -eq "Header") {
-                $optText = " -- $($opt.Text) --"
-                $optColor = "Cyan"
+        $leftText = ""
+        $leftColor = "Gray"
+        if ($null -ne $left) {
+            if ($left.Type -eq "Header") {
+                $leftText = " -- $($left.Text) --"
+                $leftColor = "Cyan"
             }
-            elseif ($opt.Type -eq "Item") {
-                $item = $opt.Item
+            elseif ($left.Type -eq "Item") {
+                $item = $left.Item
                 $selected = if ($item.Selected) { "[x]" } else { "[ ]" }
                 $scanSym = if ($item.ScanStatus -eq "Healthy") { "v" } elseif ($item.ScanStatus -eq "Recommended") { "*" } elseif ($item.ScanStatus -eq "Error") { "?" } else { " " }
                 $dangerSym = if ($item.Danger -eq "Dangerous") { "!" } else { " " }
-                $optText = "{0}{1} {2}{3,2}. {4}" -f $selected, $scanSym, $dangerSym, $item.Id, $item.Name
+                $leftText = "{0}{1} {2}{3,2}. {4}" -f $selected, $scanSym, $dangerSym, $item.Id, $item.Name
                 
-                if ($item.Selected) { $optColor = "Green" }
-                elseif ($item.ScanStatus -eq "Recommended") { $optColor = "Yellow" }
-                elseif ($item.Danger -eq "Dangerous") { $optColor = "Red" }
+                if ($item.Selected) { $leftColor = "Green" }
+                elseif ($item.ScanStatus -eq "Recommended") { $leftColor = "Yellow" }
+                elseif ($item.Danger -eq "Dangerous") { $leftColor = "Red" }
             }
         }
         
         # Format right column
-        $repText = ""
-        $repColor = "Gray"
-        if ($null -ne $rep) {
-            if ($rep.Type -eq "Header") {
-                $repText = " -- $($rep.Text) --"
-                $repColor = "Cyan"
+        $rightText = ""
+        $rightColor = "Gray"
+        if ($null -ne $right) {
+            if ($right.Type -eq "Header") {
+                $rightText = " -- $($right.Text) --"
+                $rightColor = "Cyan"
             }
-            elseif ($rep.Type -eq "Item") {
-                $item = $rep.Item
+            elseif ($right.Type -eq "Item") {
+                $item = $right.Item
                 $selected = if ($item.Selected) { "[x]" } else { "[ ]" }
                 $scanSym = if ($item.ScanStatus -eq "Healthy") { "v" } elseif ($item.ScanStatus -eq "Recommended") { "*" } elseif ($item.ScanStatus -eq "Error") { "?" } else { " " }
                 $dangerSym = if ($item.Danger -eq "Dangerous") { "!" } else { " " }
-                $repText = "{0}{1} {2}{3,2}. {4}" -f $selected, $scanSym, $dangerSym, $item.Id, $item.Name
+                $rightText = "{0}{1} {2}{3,2}. {4}" -f $selected, $scanSym, $dangerSym, $item.Id, $item.Name
                 
-                if ($item.Selected) { $repColor = "Green" }
-                elseif ($item.ScanStatus -eq "Recommended") { $repColor = "Yellow" }
-                elseif ($item.Danger -eq "Dangerous") { $repColor = "Red" }
+                if ($item.Selected) { $rightColor = "Green" }
+                elseif ($item.ScanStatus -eq "Recommended") { $rightColor = "Yellow" }
+                elseif ($item.Danger -eq "Dangerous") { $rightColor = "Red" }
             }
         }
         
         # Render side-by-side
-        Write-Host $optText.PadRight($leftWidth) -NoNewline -ForegroundColor $optColor
+        Write-Host $leftText.PadRight($leftWidth) -NoNewline -ForegroundColor $leftColor
         Write-Host " | " -NoNewline -ForegroundColor Cyan
-        Write-Host $repText -ForegroundColor $repColor
-    }
-    
-    Write-Host "----------------------------------------------------------------------------------------" -ForegroundColor Cyan
-    Write-Host "                                   BACKUP & RESTORE                                     " -ForegroundColor White
-    Write-Host "----------------------------------------------------------------------------------------" -ForegroundColor Cyan
-    
-    # Generate backups and restores layout lines dynamically
-    $bkpOpts = $backups | Where-Object { $_.Subcategory -eq "System Backups" }
-    $rstOpts = $backups | Where-Object { $_.Subcategory -eq "System Restores" }
-    
-    $bkpLines = Get-LayoutLines -items $bkpOpts
-    $rstLines = Get-LayoutLines -items $rstOpts
-    
-    $maxBkpRows = [Math]::Max($bkpLines.Count, $rstLines.Count)
-    for ($i = 0; $i -lt $maxBkpRows; $i++) {
-        $bkp1 = if ($i -lt $bkpLines.Count) { $bkpLines[$i] } else { $null }
-        $bkp2 = if ($i -lt $rstLines.Count) { $rstLines[$i] } else { $null }
-        
-        # Format left column (Backups)
-        $bkp1Text = ""
-        $bkp1Color = "Gray"
-        if ($null -ne $bkp1) {
-            if ($bkp1.Type -eq "Header") {
-                $bkp1Text = " -- $($bkp1.Text) --"
-                $bkp1Color = "Cyan"
-            }
-            elseif ($bkp1.Type -eq "Item") {
-                $item = $bkp1.Item
-                $selected = if ($item.Selected) { "[x]" } else { "[ ]" }
-                $scanSym = if ($item.ScanStatus -eq "Healthy") { "v" } elseif ($item.ScanStatus -eq "Recommended") { "*" } elseif ($item.ScanStatus -eq "Error") { "?" } else { " " }
-                $dangerSym = if ($item.Danger -eq "Dangerous") { "!" } else { " " }
-                $bkp1Text = "{0}{1} {2}{3,2}. {4}" -f $selected, $scanSym, $dangerSym, $item.Id, $item.Name
-                
-                if ($item.Selected) { $bkp1Color = "Green" }
-                elseif ($item.ScanStatus -eq "Recommended") { $bkp1Color = "Yellow" }
-                elseif ($item.Danger -eq "Dangerous") { $bkp1Color = "Red" }
-            }
-        }
-        
-        # Format right column (Restores)
-        $bkp2Text = ""
-        $bkp2Color = "Gray"
-        if ($null -ne $bkp2) {
-            if ($bkp2.Type -eq "Header") {
-                $bkp2Text = " -- $($bkp2.Text) --"
-                $bkp2Color = "Cyan"
-            }
-            elseif ($bkp2.Type -eq "Item") {
-                $item = $bkp2.Item
-                $selected = if ($item.Selected) { "[x]" } else { "[ ]" }
-                $scanSym = if ($item.ScanStatus -eq "Healthy") { "v" } elseif ($item.ScanStatus -eq "Recommended") { "*" } elseif ($item.ScanStatus -eq "Error") { "?" } else { " " }
-                $dangerSym = if ($item.Danger -eq "Dangerous") { "!" } else { " " }
-                $bkp2Text = "{0}{1} {2}{3,2}. {4}" -f $selected, $scanSym, $dangerSym, $item.Id, $item.Name
-                
-                if ($item.Selected) { $bkp2Color = "Green" }
-                elseif ($item.ScanStatus -eq "Recommended") { $bkp2Color = "Yellow" }
-                elseif ($item.Danger -eq "Dangerous") { $bkp2Color = "Red" }
-            }
-        }
-        
-        # Render side-by-side
-        Write-Host $bkp1Text.PadRight($leftWidth) -NoNewline -ForegroundColor $bkp1Color
-        Write-Host " | " -NoNewline -ForegroundColor Cyan
-        Write-Host $bkp2Text -ForegroundColor $bkp2Color
+        Write-Host $rightText -ForegroundColor $rightColor
     }
     
     Write-Host "========================================================================================" -ForegroundColor Cyan
@@ -308,7 +273,7 @@ while ($true) {
     }
     
     # User Input
-    Write-Host "  Inputs: <id,id,...> to toggle | P1/P2/P3 for Presets | B to Backup | S to Scan | R to Run | Q to Quit" -ForegroundColor DarkCyan
+    Write-Host "  Inputs: <id,id,...> to toggle | OPT/REP/BKP to switch | P1/P2/P3 for Presets | B to Backup | S to Scan | R to Run | Q to Quit" -ForegroundColor DarkCyan
     $input = Read-Host "  WinSuture CLI"
     $input = $input.Trim().Replace("'", "").Replace('"', "").ToUpper()
     
@@ -322,6 +287,21 @@ while ($true) {
         Clear-Host
         Write-Host "[+] Thank you for using WinSuture! Goodbye." -ForegroundColor Green
         exit
+    }
+    elseif ($input -eq "OPT") {
+        $script:activeScreen = "O"
+        $alertMessage = "Switched to Optimizations tab."
+        $alertColor = "Green"
+    }
+    elseif ($input -eq "REP") {
+        $script:activeScreen = "R"
+        $alertMessage = "Switched to Repairs tab."
+        $alertColor = "Green"
+    }
+    elseif ($input -eq "BKP") {
+        $script:activeScreen = "B"
+        $alertMessage = "Switched to Backup & Restore tab."
+        $alertColor = "Green"
     }
     elseif ($input -eq "C") {
         for ($i = 0; $i -lt $tweaks.Count; $i++) {
@@ -365,7 +345,7 @@ while ($true) {
         # Reset the global backup directory so a fresh folder is created
         $global:WinSutureBackupDir = $null
         
-        $backupItems = $tweaks | Where-Object { $_.Id -ge 41 -and $_.Id -le 44 }
+        $backupItems = $tweaks | Where-Object { $_.Id -ge 43 -and $_.Id -le 46 }
         foreach ($item in $backupItems) {
             Write-Host "[*] Executing Task $($item.Id): $($item.Name)..." -ForegroundColor Yellow
             $sb = Get-TweakScript -item $item
@@ -419,7 +399,10 @@ while ($true) {
             $preselect = Read-Host "  Would you like to pre-select these $recCount recommendations? (Y/N)"
             if ($preselect.Trim().ToUpper() -eq "Y") {
                 foreach ($id in $recommendedIds) {
-                    $tweaks[$id - 1].Selected = $true
+                    $item = $tweaks | Where-Object { $_.Id -eq $id }
+                    if ($null -ne $item) {
+                        $item.Selected = $true
+                    }
                 }
                 $alertMessage = "Scan Complete! Recommended items have been pre-selected (marked with '*')."
             } else {
@@ -544,8 +527,9 @@ while ($true) {
                 $cleanStr = $indexStr.Trim()
                 if ($cleanStr -match '^\d+$') {
                     $cleanIdx = [int]$cleanStr
-                    if ($cleanIdx -ge 1 -and $cleanIdx -le $tweaks.Count) {
-                        $descItems += $tweaks[$cleanIdx - 1]
+                    $item = $tweaks | Where-Object { $_.Id -eq $cleanIdx }
+                    if ($null -ne $item) {
+                        $descItems += $item
                     }
                 }
             }
@@ -574,9 +558,10 @@ while ($true) {
                 $cleanStr = $indexStr.Trim()
                 if ($cleanStr -match '^\d+$') {
                     $cleanIdx = [int]$cleanStr
-                    if ($cleanIdx -ge 1 -and $cleanIdx -le $tweaks.Count) {
+                    $item = $tweaks | Where-Object { $_.Id -eq $cleanIdx }
+                    if ($null -ne $item) {
                         # Toggle selection
-                        $tweaks[$cleanIdx - 1].Selected = -not $tweaks[$cleanIdx - 1].Selected
+                        $item.Selected = -not $item.Selected
                         $successCount++
                     }
                 }

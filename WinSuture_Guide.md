@@ -288,6 +288,11 @@ Set-ExecutionPolicy Bypass -Scope Process -Force
 ```
 
 ### CLI Menu Controls
+* **Screen Tabs**: Switch between different category views to keep the console clean and prevent text from scrolling off the screen:
+  * Enter **`OPT`** to view the **Optimizations** screen.
+  * Enter **`REP`** to view the **Repairs** screen.
+  * Enter **`BKP`** to view the **Backup & Restore** screen.
+  * *Note: Checked selections persist when switching tabs. You can check items in multiple categories and run them all together.*
 * **Multi-Selection**: Toggle items on or off by typing their ID numbers separated by commas (e.g., `1,2,5,22,43`).
 * **Item Description Help (`-d`)**: Appending `-d` after a comma-separated ID list will display the detailed description, category, and danger rating of those specific items (e.g., `1,2 -d` or `7,48 -d`).
 * **Package Presets**: Group select settings based on predefined profiles:
