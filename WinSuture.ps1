@@ -97,38 +97,87 @@ foreach ($t in $tweaks) {
     $t | Add-Member -MemberType NoteProperty -Name "ScanStatus" -Value "" -Force
 }
 
-# Helper to structure items under their subcategory subheaders
-function Get-LayoutLines {
+# Helper to clear the console screen and scrollback buffer robustly
+function Clear-ConsoleScreen {
+    try {
+        [Console]::Clear()
+    } catch {
+        Clear-Host
+    }
+}
+
+# Helper to structure items under their subcategory subheaders, partitioned into two columns
+# such that no subcategory is split across columns.
+function Get-PartitionedLayout {
     param(
         [array]$items
     )
-    $lines = @()
+    $leftLines = @()
+    $rightLines = @()
     if ($null -eq $items -or $items.Count -eq 0) {
-        return $lines
+        return @{ Left = $leftLines; Right = $rightLines }
     }
     
+    # Group items by subcategory
     $grouped = $items | Group-Object Subcategory
-    foreach ($g in $grouped) {
-        # Add a subcategory header line
-        $lines += [PSCustomObject]@{
+    
+    # Find the mathematically optimal split index that minimizes the height difference
+    # between the Left and Right columns while preserving sequential category order.
+    $bestDiff = [int]::MaxValue
+    $bestSplitIdx = 0
+    
+    for ($splitIdx = 0; $splitIdx -lt $grouped.Count; $splitIdx++) {
+        $leftHeight = 0
+        $rightHeight = 0
+        
+        for ($i = 0; $i -lt $grouped.Count; $i++) {
+            $h = 1 + $grouped[$i].Count  # 1 for header, plus items count
+            if ($i -le $splitIdx) {
+                $leftHeight += $h
+            } else {
+                $rightHeight += $h
+            }
+        }
+        
+        $diff = [Math]::Abs($leftHeight - $rightHeight)
+        if ($diff -lt $bestDiff) {
+            $bestDiff = $diff
+            $bestSplitIdx = $splitIdx
+        }
+    }
+    
+    # Build Left and Right layout lines arrays
+    for ($i = 0; $i -lt $grouped.Count; $i++) {
+        $g = $grouped[$i]
+        $groupLines = @()
+        $groupLines += [PSCustomObject]@{
             Type = "Header"
             Text = $g.Name
         }
         foreach ($item in $g.Group) {
-            # Add the item itself
-            $lines += [PSCustomObject]@{
+            $groupLines += [PSCustomObject]@{
                 Type = "Item"
                 Item = $item
             }
         }
+        
+        if ($i -le $bestSplitIdx) {
+            $leftLines += $groupLines
+        } else {
+            $rightLines += $groupLines
+        }
     }
-    return $lines
+    
+    return @{
+        Left = $leftLines
+        Right = $rightLines
+    }
 }
 
 # Custom header renderer
 function Draw-Header {
     param([string]$subtitle = "")
-    Clear-Host
+    Clear-ConsoleScreen
     Write-Host "========================================================================================" -ForegroundColor Cyan
     Write-Host "                                WIN SUTURE POWER CLI TOOL                               " -ForegroundColor White
     Write-Host "========================================================================================" -ForegroundColor Cyan
@@ -403,7 +452,7 @@ while ($true) {
             $alertColor = "Green"
         }
         elseif ($input -eq "Q") {
-            Clear-Host
+            Clear-ConsoleScreen
             Write-Host "[+] Thank you for using WinSuture! Goodbye." -ForegroundColor Green
             exit
         }
@@ -424,28 +473,33 @@ while ($true) {
         continue
     }
 
-    # Generate layout lines and subtitle for the active screen
-    $lines = @()
+    # Generate partitioned layout lines and subtitle for the active screen
+    $partitioned = $null
     $subtitle = ""
     if ($script:activeScreen -eq "O") {
-        $lines = Get-LayoutLines -items $opts
+        $partitioned = Get-PartitionedLayout -items $opts
         $subtitle = "Presets: P1 (Basic Opts) | P2 (Advanced Opts) | C (Clear All) | M (Main Menu)"
     }
     elseif ($script:activeScreen -eq "R") {
-        $lines = Get-LayoutLines -items $reps
+        $partitioned = Get-PartitionedLayout -items $reps
         $subtitle = "Presets: P3 (System Repairs) | C (Clear All) | M (Main Menu)"
     }
     elseif ($script:activeScreen -eq "B") {
-        $lines = Get-LayoutLines -items $backups
+        $partitioned = Get-PartitionedLayout -items $backups
         $subtitle = "Consolidated Backups: B | C (Clear All) | M (Main Menu)"
     }
     
-    # Render in a clean 2-column layout (split in half)
+    Draw-Header -subtitle $subtitle
+    
+    # Render in a clean 2-column layout (group-preserving partition)
     $leftWidth = 46
-    $half = [Math]::Ceiling($lines.Count / 2)
-    for ($i = 0; $i -lt $half; $i++) {
-        $left = $lines[$i]
-        $right = if ($i + $half -lt $lines.Count) { $lines[$i + $half] } else { $null }
+    $leftLines = if ($null -ne $partitioned) { $partitioned.Left } else { @() }
+    $rightLines = if ($null -ne $partitioned) { $partitioned.Right } else { @() }
+    $maxRows = [Math]::Max($leftLines.Count, $rightLines.Count)
+    
+    for ($i = 0; $i -lt $maxRows; $i++) {
+        $left = if ($i -lt $leftLines.Count) { $leftLines[$i] } else { $null }
+        $right = if ($i -lt $rightLines.Count) { $rightLines[$i] } else { $null }
         
         # Format left column
         $leftText = ""
