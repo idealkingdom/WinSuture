@@ -7,10 +7,11 @@ The entire tool is designed to run locally (fully offline) if the subfolders are
 ---
 
 ## ⚡ Key Highlights
-* **Category Screens (Tabs)**: The interactive CLI menu is split into three clean screens selectable via the main menu: **Optimizations** (`OPT`), **Repairs** (`REP`), and **Backup & Restore** (`BKP`). This prevents terminal clutter and ensures no items scroll off the viewport.
-* **Dual-Column Layout**: Items within each screen are grouped cleanly under descriptive subheaders (e.g., `Gaming`, `Networking`, `System UI`) and formatted side-by-side.
+* **Main Menu Landing Screen**: A unified startup dashboard that integrates admin checks, system details, and the Safe Mode recommendation warning directly on launch.
+* **Category Screens**: Dedicated visual screens for **Optimizations** (`OPT`), **Repairs** (`REP`), and **Backup & Restore** (`BKP`) to prevent terminal clutter and ensure no items scroll off the viewport.
+* **Dual-Column Layout**: Items within each category screen are grouped cleanly under descriptive subheaders (e.g., `Gaming`, `Networking`, `System UI`) and formatted side-by-side.
 * **Precedence Safety**: Backup tasks (creating restore points, registry exports, hosts backups) are prioritized and execute *first* before any system modifications are run.
-* **Safe Mode Guard**: Detects if the system is running in Windows Normal Mode and prompts a warning detailing the benefits of Safe Mode before allowing you to proceed.
+* **Safe Mode Status**: Detects if the system is running in Windows Normal Mode versus Safe Mode and dynamically displays warning contexts directly on the Main Menu landing page.
 * **Compatibility**: All Write-Host formatting parameter conflicts have been resolved to support Windows PowerShell 5.1 and PowerShell Core.
 
 ---

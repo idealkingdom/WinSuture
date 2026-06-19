@@ -288,12 +288,15 @@ Set-ExecutionPolicy Bypass -Scope Process -Force
 ```
 
 ### CLI Menu Controls
-* **Screen Tabs**: Switch between different category views to keep the console clean and prevent text from scrolling off the screen:
-  * Enter **`OPT`** to view the **Optimizations** screen.
-  * Enter **`REP`** to view the **Repairs** screen.
-  * Enter **`BKP`** to view the **Backup & Restore** screen.
-  * *Note: Checked selections persist when switching tabs. You can check items in multiple categories and run them all together.*
-* **Multi-Selection**: Toggle items on or off by typing their ID numbers separated by commas (e.g., `1,2,5,22,43`).
+* **Main Menu Landing Screen**: When launching WinSuture, it opens directly to the Main Menu. If the script is running in Windows Normal Mode, a warning about running in Safe Mode is displayed here. From the Main Menu:
+  * Select **`1`** (or type **`OPT`**) to open the **Optimizations** screen.
+  * Select **`2`** (or type **`REP`**) to open the **Repairs** screen.
+  * Select **`3`** (or type **`BKP`**) to open the **Backup & Restore** screen.
+  * Select **`R`** to run all selected tasks.
+  * Select **`C`** to clear all selections.
+  * Select **`Q`** to exit the utility.
+* **Category Screens**: When inside a category screen, you can check/uncheck items by typing their ID numbers (which must belong to the active screen) separated by commas (e.g., `1,2,5` on the Optimizations screen). Checked selections are saved globally and persist when navigating between screens.
+* **Main Menu Navigation**: To return to the Main Menu from any category screen at any time, enter **`M`** (or type **`MAIN`**).
 * **Item Description Help (`-d`)**: Appending `-d` after a comma-separated ID list will display the detailed description, category, and danger rating of those specific items (e.g., `1,2 -d` or `7,48 -d`).
 * **Package Presets**: Group select settings based on predefined profiles:
   * Enter `P1` to toggle **Basic Optimizations** (safe UI & background adjustments).
