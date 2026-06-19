@@ -153,10 +153,10 @@ function Draw-Header {
     Write-Host "                                WIN SUTURE POWER CLI TOOL                               " -ForegroundColor White
     Write-Host "========================================================================================" -ForegroundColor Cyan
     if (-not $isSafeMode) {
-        Write-Host "  ⚠️  RECOMMENDED: Run WinSuture in Safe Mode to avoid file locks and service conflicts." -ForegroundColor Yellow
+        Write-Host "  [!] RECOMMENDED: Run WinSuture in Safe Mode to avoid file locks and service conflicts." -ForegroundColor Yellow
         Write-Host "========================================================================================" -ForegroundColor Cyan
     } else {
-        Write-Host "  🛡️  STATUS: Running in Safe Mode (Minimal/Network). System mending optimal." -ForegroundColor Green
+        Write-Host "  [SAFE] STATUS: Running in Safe Mode (Minimal/Network). System mending optimal." -ForegroundColor Green
         Write-Host "========================================================================================" -ForegroundColor Cyan
     }
     if ($subtitle) {
@@ -438,7 +438,7 @@ while ($true) {
         $dangerousItems = $selectedItems | Where-Object { $_.Danger -eq "Dangerous" }
         
         if ($dangerousItems.Count -gt 0) {
-            Draw-Header -subtitle "⚠️ SYSTEM CHANGE DANGER WARNING ⚠️"
+            Draw-Header -subtitle "[!] SYSTEM CHANGE DANGER WARNING [!]"
             Write-Host "You have selected modifications with a HIGH RISK profile:" -ForegroundColor Red
             Write-Host ""
             foreach ($dt in $dangerousItems) {
@@ -463,7 +463,7 @@ while ($true) {
         
         if ($hasExplorerRestart -or $hasReboot) {
             Draw-Header -subtitle "System Operations Warning"
-            Write-Host "⚠️  ATTENTION - SYSTEM EFFECT ACTIONS DETECTED:" -ForegroundColor Yellow
+            Write-Host "[!] ATTENTION - SYSTEM EFFECT ACTIONS DETECTED:" -ForegroundColor Yellow
             Write-Host "========================================================================================" -ForegroundColor Cyan
             if ($hasExplorerRestart) {
                 Write-Host "  * Windows Explorer will restart automatically (flashing your screen/taskbar briefly)." -ForegroundColor Yellow
