@@ -180,7 +180,64 @@ function Invoke-RunSelected {
         return
     }
     
-    # Check for dangerous items
+    # 1. Safety check: Protect Restore tasks from running simultaneously with other system updates
+    $restoreItems = $selectedItems | Where-Object { $_.Id -ge 47 -and $_.Id -le 50 }
+    $otherItems = $selectedItems | Where-Object { $_.Id -lt 47 -or $_.Id -gt 50 }
+    
+    if ($restoreItems.Count -gt 0 -and $otherItems.Count -gt 0) {
+        Draw-Header -subtitle "System Restore Safety Warning"
+        Write-Host "[!] WARNING: You have selected Restore tasks alongside other modifications/repairs." -ForegroundColor Yellow
+        Write-Host "    Restoring system configurations will overwrite settings and conflicts with current choices." -ForegroundColor Yellow
+        Write-Host ""
+        Write-Host "Selected Restore tasks:" -ForegroundColor Cyan
+        foreach ($r in $restoreItems) {
+            Write-Host "  - Item $($r.Id): $($r.Name)" -ForegroundColor Gray
+        }
+        Write-Host ""
+        Write-Host "Selected Other tasks:" -ForegroundColor Cyan
+        foreach ($o in $otherItems) {
+            Write-Host "  - Item $($o.Id): $($o.Name)" -ForegroundColor Gray
+        }
+        Write-Host ""
+        Write-Host "  Choices: [R] Run RESTORES ONLY | [B] Run BOTH anyway | [A] ABORT run" -ForegroundColor DarkCyan
+        $action = Read-Host "  Please choose an action"
+        $action = $action.Trim().ToUpper()
+        if ($action -eq "R") {
+            # Execute only restores
+            $selectedItems = $restoreItems
+        }
+        elseif ($action -eq "B") {
+            # Proceed with both
+        }
+        else {
+            $script:alertMessage = "Action execution aborted by user."
+            $script:alertColor = "Yellow"
+            return
+        }
+    }
+    
+    # 2. Safety check: Recommend backups before optimizations or repairs are applied
+    $tweakOrRepairItems = $selectedItems | Where-Object { $_.Id -ge 1 -and $_.Id -le 42 }
+    $backupItemsSelected = $selectedItems | Where-Object { $_.Id -ge 43 -and $_.Id -le 46 }
+    
+    if ($tweakOrRepairItems.Count -gt 0 -and $backupItemsSelected.Count -eq 0) {
+        Draw-Header -subtitle "System Backup Recommendation"
+        Write-Host "[!] RECOMMENDATION: No backup tasks are checked for this execution run." -ForegroundColor Yellow
+        Write-Host "    It is strongly recommended to back up your system before applying changes." -ForegroundColor Yellow
+        Write-Host ""
+        $runBackup = Read-Host "  Would you like to run the backup suite first? (Y/N)"
+        if ($runBackup.Trim().ToUpper() -eq "Y") {
+            # Pre-select backup tasks dynamically for this run
+            $backupItems = $tweaks | Where-Object { $_.Id -ge 43 -and $_.Id -le 46 }
+            foreach ($b in $backupItems) {
+                $b.Selected = $true
+            }
+            # Refresh selectedItems list
+            $selectedItems = $tweaks | Where-Object { $_.Selected -eq $true }
+        }
+    }
+    
+    # Check for dangerous items in the finalized run list
     $dangerousItems = $selectedItems | Where-Object { $_.Danger -eq "Dangerous" }
     
     if ($dangerousItems.Count -gt 0) {
@@ -542,6 +599,10 @@ while ($true) {
                 }
                 Write-Host ""
             }
+            Write-Host "========================================================================================" -ForegroundColor Cyan
+            Write-Host "  Advanced Backups Suite complete! Files saved in Desktop folder." -ForegroundColor Green
+            Write-Host "========================================================================================" -ForegroundColor Cyan
+            Pause
             $alertMessage = "Advanced Backups Suite complete! Files saved in Desktop folder."
             $alertColor = "Green"
         } else {
@@ -552,6 +613,7 @@ while ($true) {
     elseif ($input -eq "S") {
         # Only allow scanning from optimizations and repairs
         if ($script:activeScreen -eq "O" -or $script:activeScreen -eq "R") {
+            Draw-Header -subtitle "Running AeroDiagnostics Scan..."
             Write-Host "  [*] Initiating AeroDiagnostics scan for active category... Please wait..." -ForegroundColor Yellow
             $recCount = 0
             $recommendedIds = @()
@@ -595,6 +657,10 @@ while ($true) {
                     $alertMessage = "Scan Complete! Recommendations displayed (marked with '*'), but selection was not changed."
                 }
             } else {
+                Write-Host "========================================================================================" -ForegroundColor Cyan
+                Write-Host "  Scan Complete! Your system is fully optimized according to the standard checks." -ForegroundColor Green
+                Write-Host "========================================================================================" -ForegroundColor Cyan
+                Pause
                 $alertMessage = "Scan Complete! Your system is fully optimized according to the standard checks."
             }
             $alertColor = "Green"
