@@ -1,266 +1,376 @@
 [
-  {
-    "Id": 21,
-    "Category": "Repair",
-    "Subcategory": "System Update",
-    "Name": "Reset Windows Update Cache",
-    "Description": "Completely resets and rebuilds the Windows Update components and cache database.",
-    "Danger": "Safe",
-    "Packages": ["Repairs"],
-    "RequiresExplorerRestart": false,
-    "RequiresReboot": false,
-    "Path": "Repairs/21_ResetWindowsUpdateCache.ps1"
-  },
-  {
-    "Id": 22,
-    "Category": "Repair",
-    "Subcategory": "Networking",
-    "Name": "Reset Network Stack / IP",
-    "Description": "Flushes and resets TCP/IP stack and Winsock catalog sockets configuration.",
-    "Danger": "Safe",
-    "Packages": ["Repairs"],
-    "RequiresExplorerRestart": false,
-    "RequiresReboot": true,
-    "Path": "Repairs/22_ResetNetworkStack.ps1"
-  },
-  {
-    "Id": 23,
-    "Category": "Repair",
-    "Subcategory": "Diagnostics & Integrity",
-    "Name": "Run SFC Scan",
-    "Description": "Scans all protected operating system integrity files, correcting corruption.",
-    "Danger": "Safe",
-    "Packages": ["Repairs"],
-    "RequiresExplorerRestart": false,
-    "RequiresReboot": false,
-    "Path": "Repairs/23_RunSFCScan.ps1"
-  },
-  {
-    "Id": 24,
-    "Category": "Repair",
-    "Subcategory": "Diagnostics & Integrity",
-    "Name": "Run DISM Repair",
-    "Description": "Repairs the system component store image via Windows Update downloads.",
-    "Danger": "Safe",
-    "Packages": ["Repairs"],
-    "RequiresExplorerRestart": false,
-    "RequiresReboot": false,
-    "Path": "Repairs/24_RunDISMRepair.ps1"
-  },
-  {
-    "Id": 25,
-    "Category": "Repair",
-    "Subcategory": "Diagnostics & Integrity",
-    "Name": "Component Store Cleanup",
-    "Description": "Purges old, superseded component updates from the WinSxS directory.",
-    "Danger": "Safe",
-    "Packages": ["Repairs"],
-    "RequiresExplorerRestart": false,
-    "RequiresReboot": false,
-    "Path": "Repairs/25_ComponentStoreCleanup.ps1"
-  },
-  {
-    "Id": 26,
-    "Category": "Repair",
-    "Subcategory": "Windows Store",
-    "Name": "Reset Windows Store",
-    "Description": "Purges store caches and resets default package index (wsreset).",
-    "Danger": "Safe",
-    "Packages": ["Repairs"],
-    "RequiresExplorerRestart": false,
-    "RequiresReboot": false,
-    "Path": "Repairs/26_ResetWindowsStore.ps1"
-  },
-  {
-    "Id": 27,
-    "Category": "Repair",
-    "Subcategory": "Windows Core Apps",
-    "Name": "Re-register UWP Apps",
-    "Description": "PowerShell script that fully re-registers default Store apps (Photos, Calculator, Settings).",
-    "Danger": "Safe",
-    "Packages": [],
-    "RequiresExplorerRestart": false,
-    "RequiresReboot": false,
-    "Path": "Repairs/27_ReregisterUWPApps.ps1"
-  },
-  {
-    "Id": 28,
-    "Category": "Repair",
-    "Subcategory": "Diagnostics & Integrity",
-    "Name": "Repair WMI Repository",
-    "Description": "Salvages and rebuilds the Windows Management Instrumentation database.",
-    "Danger": "Dangerous",
-    "Packages": [],
-    "RequiresExplorerRestart": false,
-    "RequiresReboot": false,
-    "Path": "Repairs/28_RebuildWMIRepository.ps1"
-  },
-  {
-    "Id": 29,
-    "Category": "Repair",
-    "Subcategory": "System Services",
-    "Name": "Re-register VSS DLLs",
-    "Description": "Re-registers core backup volume shadow copy engine libraries.",
-    "Danger": "Safe",
-    "Packages": ["Repairs"],
-    "RequiresExplorerRestart": false,
-    "RequiresReboot": false,
-    "Path": "Repairs/29_ReregisterVSSDLLs.ps1"
-  },
-  {
-    "Id": 30,
-    "Category": "Repair",
-    "Subcategory": "Networking",
-    "Name": "Repair Windows Firewall",
-    "Description": "Flushes customized network policies and resets Microsoft Defender firewall.",
-    "Danger": "Safe",
-    "Packages": [],
-    "RequiresExplorerRestart": false,
-    "RequiresReboot": false,
-    "Path": "Repairs/30_ResetFirewallSettings.ps1"
-  },
-  {
-    "Id": 31,
-    "Category": "Repair",
-    "Subcategory": "System Policies",
-    "Name": "Reset Local Group Policies",
-    "Description": "Restores registry policy settings and removes constraints placed by apps or malware.",
-    "Danger": "Safe",
-    "Packages": ["Repairs"],
-    "RequiresExplorerRestart": false,
-    "RequiresReboot": false,
-    "Path": "Repairs/31_ResetLocalGroupPolicies.ps1"
-  },
-  {
-    "Id": 32,
-    "Category": "Repair",
-    "Subcategory": "Networking",
-    "Name": "Flush/Register DNS",
-    "Description": "Purges system caching index and registers active connection configurations.",
-    "Danger": "Safe",
-    "Packages": ["Repairs"],
-    "RequiresExplorerRestart": false,
-    "RequiresReboot": false,
-    "Path": "Repairs/32_FlushRegisterDNS.ps1"
-  },
-  {
-    "Id": 33,
-    "Category": "Repair",
-    "Subcategory": "System Services",
-    "Name": "Clear Print Spooler Queue",
-    "Description": "Forces stopping spooler and empties print caches to fix stuck printing queue.",
-    "Danger": "Safe",
-    "Packages": ["Repairs"],
-    "RequiresExplorerRestart": false,
-    "RequiresReboot": false,
-    "Path": "Repairs/33_ClearPrintSpoolerQueue.ps1"
-  },
-  {
-    "Id": 34,
-    "Category": "Repair",
-    "Subcategory": "Windows Core Apps",
-    "Name": "Fix LNK File Associations",
-    "Description": "Clears override settings for .lnk files, restoring desktop shortcut behaviors.",
-    "Danger": "Safe",
-    "Packages": [],
-    "RequiresExplorerRestart": false,
-    "RequiresReboot": false,
-    "Path": "Repairs/34_FixLNKFileAssociations.ps1"
-  },
-  {
-    "Id": 35,
-    "Category": "Repair",
-    "Subcategory": "Search & Start",
-    "Name": "Rebuild Search Index",
-    "Description": "Deletes database of the search engine, forcing a clean cache re-index.",
-    "Danger": "Safe",
-    "Packages": [],
-    "RequiresExplorerRestart": false,
-    "RequiresReboot": false,
-    "Path": "Repairs/35_RebuildSearchIndex.ps1"
-  },
-  {
-    "Id": 36,
-    "Category": "Repair",
-    "Subcategory": "System Services",
-    "Name": "Repair MSI Engine",
-    "Description": "Re-registers Microsoft Installer service system components.",
-    "Danger": "Safe",
-    "Packages": [],
-    "RequiresExplorerRestart": false,
-    "RequiresReboot": false,
-    "Path": "Repairs/36_RepairMSIEngine.ps1"
-  },
-  {
-    "Id": 37,
-    "Category": "Repair",
-    "Subcategory": "Networking",
-    "Name": "Restore Default hosts",
-    "Description": "Restores system hosts index file, clearing malicious redirects/blocklists.",
-    "Danger": "Safe",
-    "Packages": ["Repairs"],
-    "RequiresExplorerRestart": false,
-    "RequiresReboot": false,
-    "Path": "Repairs/37_RestoreDefaulthosts.ps1"
-  },
-  {
-    "Id": 38,
-    "Category": "Repair",
-    "Subcategory": "System Services",
-    "Name": "Restore Default Services",
-    "Description": "Enables core background system services that may have been disabled.",
-    "Danger": "Safe",
-    "Packages": ["Repairs"],
-    "RequiresExplorerRestart": false,
-    "RequiresReboot": false,
-    "Path": "Repairs/38_DefaultServicesStartup.ps1"
-  },
-  {
-    "Id": 39,
-    "Category": "Repair",
-    "Subcategory": "System UI",
-    "Name": "Clear Shell Icon Cache",
-    "Description": "Forces closing Explorer and cleans up icon and thumbnail database cache.",
-    "Danger": "Safe",
-    "Packages": [],
-    "RequiresExplorerRestart": true,
-    "RequiresReboot": false,
-    "Path": "Repairs/39_ClearShellIconCache.ps1"
-  },
-  {
-    "Id": 40,
-    "Category": "Repair",
-    "Subcategory": "System Boot",
-    "Name": "Rebuild BCD (Boot Config)",
-    "Description": "Rebuilds boot records and parameters index database. (Warning: Run in Recovery environment).",
-    "Danger": "Dangerous",
-    "Packages": [],
-    "RequiresExplorerRestart": false,
-    "RequiresReboot": true,
-    "Path": "Repairs/40_RebuildBCD.ps1"
-  },
-  {
-    "Id": 41,
-    "Category": "Repair",
-    "Subcategory": "File & Registry Permissions",
-    "Name": "Reset File Permissions",
-    "Description": "Resets default Windows system folder access control list permissions (via secedit).",
-    "Danger": "Safe",
-    "Packages": ["Repairs"],
-    "RequiresExplorerRestart": false,
-    "RequiresReboot": false,
-    "Path": "Repairs/41_ResetFilePermissions.ps1"
-  },
-  {
-    "Id": 42,
-    "Category": "Repair",
-    "Subcategory": "File & Registry Permissions",
-    "Name": "Reset Registry Permissions",
-    "Description": "Resets core HKLM and HKCU registry key permissions back to standard default templates.",
-    "Danger": "Safe",
-    "Packages": ["Repairs"],
-    "RequiresExplorerRestart": false,
-    "RequiresReboot": false,
-    "Path": "Repairs/42_ResetRegistryPermissions.ps1"
-  }
+    {
+        "Id":  21,
+        "Category":  "Repair",
+        "Subcategory":  "System Update",
+        "Name":  "Reset Windows Update Cache",
+        "Description":  "Completely resets and rebuilds the Windows Update components and cache database.",
+        "Danger":  "Safe",
+        "Packages":  [
+                         "Repairs"
+                     ],
+        "RequiresExplorerRestart":  false,
+        "RequiresReboot":  false,
+        "Path":  "Repairs/21_ResetWindowsUpdateCache.ps1",
+        "SupportedOS":  [
+                            "All"
+                        ]
+    },
+    {
+        "Id":  22,
+        "Category":  "Repair",
+        "Subcategory":  "Networking",
+        "Name":  "Reset Network Stack / IP",
+        "Description":  "Flushes and resets TCP/IP stack and Winsock catalog sockets configuration.",
+        "Danger":  "Safe",
+        "Packages":  [
+                         "Repairs"
+                     ],
+        "RequiresExplorerRestart":  false,
+        "RequiresReboot":  true,
+        "Path":  "Repairs/22_ResetNetworkStack.ps1",
+        "SupportedOS":  [
+                            "All"
+                        ]
+    },
+    {
+        "Id":  23,
+        "Category":  "Repair",
+        "Subcategory":  "Diagnostics \u0026 Integrity",
+        "Name":  "Run SFC Scan",
+        "Description":  "Scans all protected operating system integrity files, correcting corruption.",
+        "Danger":  "Safe",
+        "Packages":  [
+                         "Repairs"
+                     ],
+        "RequiresExplorerRestart":  false,
+        "RequiresReboot":  false,
+        "Path":  "Repairs/23_RunSFCScan.ps1",
+        "SupportedOS":  [
+                            "All"
+                        ]
+    },
+    {
+        "Id":  24,
+        "Category":  "Repair",
+        "Subcategory":  "Diagnostics \u0026 Integrity",
+        "Name":  "Run DISM Repair",
+        "Description":  "Repairs the system component store image via Windows Update downloads.",
+        "Danger":  "Safe",
+        "Packages":  [
+                         "Repairs"
+                     ],
+        "RequiresExplorerRestart":  false,
+        "RequiresReboot":  false,
+        "Path":  "Repairs/24_RunDISMRepair.ps1",
+        "SupportedOS":  [
+                            "All"
+                        ]
+    },
+    {
+        "Id":  25,
+        "Category":  "Repair",
+        "Subcategory":  "Diagnostics \u0026 Integrity",
+        "Name":  "Component Store Cleanup",
+        "Description":  "Purges old, superseded component updates from the WinSxS directory.",
+        "Danger":  "Safe",
+        "Packages":  [
+                         "Repairs"
+                     ],
+        "RequiresExplorerRestart":  false,
+        "RequiresReboot":  false,
+        "Path":  "Repairs/25_ComponentStoreCleanup.ps1",
+        "SupportedOS":  [
+                            "All"
+                        ]
+    },
+    {
+        "Id":  26,
+        "Category":  "Repair",
+        "Subcategory":  "Windows Store",
+        "Name":  "Reset Windows Store",
+        "Description":  "Purges store caches and resets default package index (wsreset).",
+        "Danger":  "Safe",
+        "Packages":  [
+                         "Repairs"
+                     ],
+        "RequiresExplorerRestart":  false,
+        "RequiresReboot":  false,
+        "Path":  "Repairs/26_ResetWindowsStore.ps1",
+        "SupportedOS":  [
+                            "All"
+                        ]
+    },
+    {
+        "Id":  27,
+        "Category":  "Repair",
+        "Subcategory":  "Windows Core Apps",
+        "Name":  "Re-register UWP Apps",
+        "Description":  "PowerShell script that fully re-registers default Store apps (Photos, Calculator, Settings).",
+        "Danger":  "Safe",
+        "Packages":  [
+
+                     ],
+        "RequiresExplorerRestart":  false,
+        "RequiresReboot":  false,
+        "Path":  "Repairs/27_ReregisterUWPApps.ps1",
+        "SupportedOS":  [
+                            "All"
+                        ]
+    },
+    {
+        "Id":  28,
+        "Category":  "Repair",
+        "Subcategory":  "Diagnostics \u0026 Integrity",
+        "Name":  "Repair WMI Repository",
+        "Description":  "Salvages and rebuilds the Windows Management Instrumentation database.",
+        "Danger":  "Dangerous",
+        "Packages":  [
+
+                     ],
+        "RequiresExplorerRestart":  false,
+        "RequiresReboot":  false,
+        "Path":  "Repairs/28_RebuildWMIRepository.ps1",
+        "SupportedOS":  [
+                            "All"
+                        ]
+    },
+    {
+        "Id":  29,
+        "Category":  "Repair",
+        "Subcategory":  "System Services",
+        "Name":  "Re-register VSS DLLs",
+        "Description":  "Re-registers core backup volume shadow copy engine libraries.",
+        "Danger":  "Safe",
+        "Packages":  [
+                         "Repairs"
+                     ],
+        "RequiresExplorerRestart":  false,
+        "RequiresReboot":  false,
+        "Path":  "Repairs/29_ReregisterVSSDLLs.ps1",
+        "SupportedOS":  [
+                            "All"
+                        ]
+    },
+    {
+        "Id":  30,
+        "Category":  "Repair",
+        "Subcategory":  "Networking",
+        "Name":  "Repair Windows Firewall",
+        "Description":  "Flushes customized network policies and resets Microsoft Defender firewall.",
+        "Danger":  "Safe",
+        "Packages":  [
+
+                     ],
+        "RequiresExplorerRestart":  false,
+        "RequiresReboot":  false,
+        "Path":  "Repairs/30_ResetFirewallSettings.ps1",
+        "SupportedOS":  [
+                            "All"
+                        ]
+    },
+    {
+        "Id":  31,
+        "Category":  "Repair",
+        "Subcategory":  "System Policies",
+        "Name":  "Reset Local Group Policies",
+        "Description":  "Restores registry policy settings and removes constraints placed by apps or malware.",
+        "Danger":  "Safe",
+        "Packages":  [
+                         "Repairs"
+                     ],
+        "RequiresExplorerRestart":  false,
+        "RequiresReboot":  false,
+        "Path":  "Repairs/31_ResetLocalGroupPolicies.ps1",
+        "SupportedOS":  [
+                            "All"
+                        ]
+    },
+    {
+        "Id":  32,
+        "Category":  "Repair",
+        "Subcategory":  "Networking",
+        "Name":  "Flush/Register DNS",
+        "Description":  "Purges system caching index and registers active connection configurations.",
+        "Danger":  "Safe",
+        "Packages":  [
+                         "Repairs"
+                     ],
+        "RequiresExplorerRestart":  false,
+        "RequiresReboot":  false,
+        "Path":  "Repairs/32_FlushRegisterDNS.ps1",
+        "SupportedOS":  [
+                            "All"
+                        ]
+    },
+    {
+        "Id":  33,
+        "Category":  "Repair",
+        "Subcategory":  "System Services",
+        "Name":  "Clear Print Spooler Queue",
+        "Description":  "Forces stopping spooler and empties print caches to fix stuck printing queue.",
+        "Danger":  "Safe",
+        "Packages":  [
+                         "Repairs"
+                     ],
+        "RequiresExplorerRestart":  false,
+        "RequiresReboot":  false,
+        "Path":  "Repairs/33_ClearPrintSpoolerQueue.ps1",
+        "SupportedOS":  [
+                            "All"
+                        ]
+    },
+    {
+        "Id":  34,
+        "Category":  "Repair",
+        "Subcategory":  "Windows Core Apps",
+        "Name":  "Fix LNK File Associations",
+        "Description":  "Clears override settings for .lnk files, restoring desktop shortcut behaviors.",
+        "Danger":  "Safe",
+        "Packages":  [
+
+                     ],
+        "RequiresExplorerRestart":  false,
+        "RequiresReboot":  false,
+        "Path":  "Repairs/34_FixLNKFileAssociations.ps1",
+        "SupportedOS":  [
+                            "All"
+                        ]
+    },
+    {
+        "Id":  35,
+        "Category":  "Repair",
+        "Subcategory":  "Search \u0026 Start",
+        "Name":  "Rebuild Search Index",
+        "Description":  "Deletes database of the search engine, forcing a clean cache re-index.",
+        "Danger":  "Safe",
+        "Packages":  [
+
+                     ],
+        "RequiresExplorerRestart":  false,
+        "RequiresReboot":  false,
+        "Path":  "Repairs/35_RebuildSearchIndex.ps1",
+        "SupportedOS":  [
+                            "All"
+                        ]
+    },
+    {
+        "Id":  36,
+        "Category":  "Repair",
+        "Subcategory":  "System Services",
+        "Name":  "Repair MSI Engine",
+        "Description":  "Re-registers Microsoft Installer service system components.",
+        "Danger":  "Safe",
+        "Packages":  [
+
+                     ],
+        "RequiresExplorerRestart":  false,
+        "RequiresReboot":  false,
+        "Path":  "Repairs/36_RepairMSIEngine.ps1",
+        "SupportedOS":  [
+                            "All"
+                        ]
+    },
+    {
+        "Id":  37,
+        "Category":  "Repair",
+        "Subcategory":  "Networking",
+        "Name":  "Restore Default hosts",
+        "Description":  "Restores system hosts index file, clearing malicious redirects/blocklists.",
+        "Danger":  "Safe",
+        "Packages":  [
+                         "Repairs"
+                     ],
+        "RequiresExplorerRestart":  false,
+        "RequiresReboot":  false,
+        "Path":  "Repairs/37_RestoreDefaulthosts.ps1",
+        "SupportedOS":  [
+                            "All"
+                        ]
+    },
+    {
+        "Id":  38,
+        "Category":  "Repair",
+        "Subcategory":  "System Services",
+        "Name":  "Restore Default Services",
+        "Description":  "Enables core background system services that may have been disabled.",
+        "Danger":  "Safe",
+        "Packages":  [
+                         "Repairs"
+                     ],
+        "RequiresExplorerRestart":  false,
+        "RequiresReboot":  false,
+        "Path":  "Repairs/38_DefaultServicesStartup.ps1",
+        "SupportedOS":  [
+                            "All"
+                        ]
+    },
+    {
+        "Id":  39,
+        "Category":  "Repair",
+        "Subcategory":  "System UI",
+        "Name":  "Clear Shell Icon Cache",
+        "Description":  "Forces closing Explorer and cleans up icon and thumbnail database cache.",
+        "Danger":  "Safe",
+        "Packages":  [
+
+                     ],
+        "RequiresExplorerRestart":  true,
+        "RequiresReboot":  false,
+        "Path":  "Repairs/39_ClearShellIconCache.ps1",
+        "SupportedOS":  [
+                            "All"
+                        ]
+    },
+    {
+        "Id":  40,
+        "Category":  "Repair",
+        "Subcategory":  "System Boot",
+        "Name":  "Rebuild BCD (Boot Config)",
+        "Description":  "Rebuilds boot records and parameters index database. (Warning: Run in Recovery environment).",
+        "Danger":  "Dangerous",
+        "Packages":  [
+
+                     ],
+        "RequiresExplorerRestart":  false,
+        "RequiresReboot":  true,
+        "Path":  "Repairs/40_RebuildBCD.ps1",
+        "SupportedOS":  [
+                            "All"
+                        ]
+    },
+    {
+        "Id":  41,
+        "Category":  "Repair",
+        "Subcategory":  "File \u0026 Registry Permissions",
+        "Name":  "Reset File Permissions",
+        "Description":  "Resets default Windows system folder access control list permissions (via secedit).",
+        "Danger":  "Safe",
+        "Packages":  [
+                         "Repairs"
+                     ],
+        "RequiresExplorerRestart":  false,
+        "RequiresReboot":  false,
+        "Path":  "Repairs/41_ResetFilePermissions.ps1",
+        "SupportedOS":  [
+                            "All"
+                        ]
+    },
+    {
+        "Id":  42,
+        "Category":  "Repair",
+        "Subcategory":  "File \u0026 Registry Permissions",
+        "Name":  "Reset Registry Permissions",
+        "Description":  "Resets core HKLM and HKCU registry key permissions back to standard default templates.",
+        "Danger":  "Safe",
+        "Packages":  [
+                         "Repairs"
+                     ],
+        "RequiresExplorerRestart":  false,
+        "RequiresReboot":  false,
+        "Path":  "Repairs/42_ResetRegistryPermissions.ps1",
+        "SupportedOS":  [
+                            "All"
+                        ]
+    }
 ]

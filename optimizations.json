@@ -4,24 +4,34 @@
     "Category": "Optimization",
     "Subcategory": "System UI",
     "Name": "Classic Context Menu",
-    "Description": "Revert to Windows 10 classic right-click context menu (no 'Show more options' click).",
+    "Description": "Revert to Windows 10 classic right-click context menu (no \u0027Show more options\u0027 click).",
     "Danger": "Safe",
-    "Packages": ["Basic"],
+    "Packages": [
+      "Basic"
+    ],
     "RequiresExplorerRestart": true,
     "RequiresReboot": false,
-    "Path": "Optimizations/1_ClassicContextMenu.ps1"
+    "Path": "Optimizations/1_ClassicContextMenu.ps1",
+    "SupportedOS": [
+      "Windows 11"
+    ]
   },
   {
     "Id": 2,
     "Category": "Optimization",
-    "Subcategory": "Search & Start",
+    "Subcategory": "Search \u0026 Start",
     "Name": "Disable Bing in Start Menu",
     "Description": "Stops local search queries from displaying web results or sending keys to Bing.",
     "Danger": "Safe",
-    "Packages": ["Basic"],
+    "Packages": [
+      "Basic"
+    ],
     "RequiresExplorerRestart": false,
     "RequiresReboot": false,
-    "Path": "Optimizations/2_DisableBingSearch.ps1"
+    "Path": "Optimizations/2_DisableBingSearch.ps1",
+    "SupportedOS": [
+      "All"
+    ]
   },
   {
     "Id": 3,
@@ -30,10 +40,15 @@
     "Name": "Decrease Menu Show Delay",
     "Description": "Speeds up response time of cascading submenus and UI hover elements.",
     "Danger": "Safe",
-    "Packages": ["Basic"],
+    "Packages": [
+      "Basic"
+    ],
     "RequiresExplorerRestart": false,
     "RequiresReboot": false,
-    "Path": "Optimizations/3_DecreaseMenuDelay.ps1"
+    "Path": "Optimizations/3_DecreaseMenuDelay.ps1",
+    "SupportedOS": [
+      "All"
+    ]
   },
   {
     "Id": 4,
@@ -42,10 +57,15 @@
     "Name": "Disable NTFS Last Access",
     "Description": "Stops NTFS metadata from updating the last read/access timestamp on files.",
     "Danger": "Safe",
-    "Packages": ["Basic"],
+    "Packages": [
+      "Basic"
+    ],
     "RequiresExplorerRestart": false,
     "RequiresReboot": false,
-    "Path": "Optimizations/4_DisableNTFSLastAccess.ps1"
+    "Path": "Optimizations/4_DisableNTFSLastAccess.ps1",
+    "SupportedOS": [
+      "All"
+    ]
   },
   {
     "Id": 5,
@@ -54,10 +74,15 @@
     "Name": "Enable HAGS",
     "Description": "Enables Hardware-Accelerated GPU Scheduling for gaming latency reduction.",
     "Danger": "Safe",
-    "Packages": ["Advanced"],
+    "Packages": [
+      "Advanced"
+    ],
     "RequiresExplorerRestart": false,
     "RequiresReboot": true,
-    "Path": "Optimizations/5_EnableHAGS.ps1"
+    "Path": "Optimizations/5_EnableHAGS.ps1",
+    "SupportedOS": [
+      "All"
+    ]
   },
   {
     "Id": 6,
@@ -66,10 +91,15 @@
     "Name": "Ultimate Power Plan",
     "Description": "Unlocks and activates the hidden Ultimate Performance power plan.",
     "Danger": "Safe",
-    "Packages": ["Advanced"],
+    "Packages": [
+      "Advanced"
+    ],
     "RequiresExplorerRestart": false,
     "RequiresReboot": false,
-    "Path": "Optimizations/6_UltimatePowerPlan.ps1"
+    "Path": "Optimizations/6_UltimatePowerPlan.ps1",
+    "SupportedOS": [
+      "All"
+    ]
   },
   {
     "Id": 7,
@@ -78,10 +108,15 @@
     "Name": "Disable VBS / Memory Integrity",
     "Description": "Disables Virtualization-Based Security (VBS/HVCI) to free up CPU cycles for gaming.",
     "Danger": "Dangerous",
-    "Packages": ["Advanced"],
+    "Packages": [
+      "Advanced"
+    ],
     "RequiresExplorerRestart": false,
     "RequiresReboot": true,
-    "Path": "Optimizations/7_DisableVBS.ps1"
+    "Path": "Optimizations/7_DisableVBS.ps1",
+    "SupportedOS": [
+      "All"
+    ]
   },
   {
     "Id": 8,
@@ -90,10 +125,15 @@
     "Name": "Disable Game DVR",
     "Description": "Disables Windows background recording of gameplay to eliminate micro-stutters.",
     "Danger": "Safe",
-    "Packages": ["Basic"],
+    "Packages": [
+      "Basic"
+    ],
     "RequiresExplorerRestart": false,
     "RequiresReboot": false,
-    "Path": "Optimizations/8_DisableGameDVR.ps1"
+    "Path": "Optimizations/8_DisableGameDVR.ps1",
+    "SupportedOS": [
+      "All"
+    ]
   },
   {
     "Id": 9,
@@ -102,22 +142,32 @@
     "Name": "Disable Startup Delay",
     "Description": "Disables the default 10-second Windows startup delay for desktop apps.",
     "Danger": "Safe",
-    "Packages": ["Basic"],
+    "Packages": [
+      "Basic"
+    ],
     "RequiresExplorerRestart": false,
     "RequiresReboot": false,
-    "Path": "Optimizations/9_DisableStartupDelay.ps1"
+    "Path": "Optimizations/9_DisableStartupDelay.ps1",
+    "SupportedOS": [
+      "All"
+    ]
   },
   {
     "Id": 10,
     "Category": "Optimization",
-    "Subcategory": "Telemetry & Privacy",
+    "Subcategory": "Telemetry \u0026 Privacy",
     "Name": "Disable Telemetry Services",
     "Description": "Disables the DiagTrack service responsible for reporting hardware usage telemetry.",
     "Danger": "Safe",
-    "Packages": ["Basic"],
+    "Packages": [
+      "Basic"
+    ],
     "RequiresExplorerRestart": false,
     "RequiresReboot": false,
-    "Path": "Optimizations/10_DisableTelemetry.ps1"
+    "Path": "Optimizations/10_DisableTelemetry.ps1",
+    "SupportedOS": [
+      "All"
+    ]
   },
   {
     "Id": 11,
@@ -126,10 +176,15 @@
     "Name": "Disable Hibernation",
     "Description": "Deletes hiberfil.sys and disables hibernation to reclaim gigabytes of disk space.",
     "Danger": "Safe",
-    "Packages": ["Advanced"],
+    "Packages": [
+      "Advanced"
+    ],
     "RequiresExplorerRestart": false,
     "RequiresReboot": false,
-    "Path": "Optimizations/11_DisableHibernation.ps1"
+    "Path": "Optimizations/11_DisableHibernation.ps1",
+    "SupportedOS": [
+      "All"
+    ]
   },
   {
     "Id": 12,
@@ -138,10 +193,15 @@
     "Name": "Optimize Gaming Scheduling",
     "Description": "Prioritizes CPU execution slices for the active foreground window/game.",
     "Danger": "Safe",
-    "Packages": ["Advanced"],
+    "Packages": [
+      "Advanced"
+    ],
     "RequiresExplorerRestart": false,
     "RequiresReboot": false,
-    "Path": "Optimizations/12_OptimizeGamingScheduling.ps1"
+    "Path": "Optimizations/12_OptimizeGamingScheduling.ps1",
+    "SupportedOS": [
+      "All"
+    ]
   },
   {
     "Id": 13,
@@ -150,22 +210,32 @@
     "Name": "Enable Large System Cache",
     "Description": "Optimizes kernel memory for heavy file disk transfers (not ideal for database servers).",
     "Danger": "Safe",
-    "Packages": ["Advanced"],
+    "Packages": [
+      "Advanced"
+    ],
     "RequiresExplorerRestart": false,
     "RequiresReboot": false,
-    "Path": "Optimizations/13_EnableLargeSystemCache.ps1"
+    "Path": "Optimizations/13_EnableLargeSystemCache.ps1",
+    "SupportedOS": [
+      "All"
+    ]
   },
   {
     "Id": 14,
     "Category": "Optimization",
-    "Subcategory": "Search & Start",
+    "Subcategory": "Search \u0026 Start",
     "Name": "Disable Search Indexer",
     "Description": "Stops the constant indexing read/writes (recommended for high-speed SSDs).",
     "Danger": "Safe",
-    "Packages": ["Advanced"],
+    "Packages": [
+      "Advanced"
+    ],
     "RequiresExplorerRestart": false,
     "RequiresReboot": false,
-    "Path": "Optimizations/14_DisableSearchIndexer.ps1"
+    "Path": "Optimizations/14_DisableSearchIndexer.ps1",
+    "SupportedOS": [
+      "All"
+    ]
   },
   {
     "Id": 15,
@@ -174,22 +244,32 @@
     "Name": "Hide Taskbar Widgets/Chat",
     "Description": "Removes background WebView2 widget rendering from the system startup.",
     "Danger": "Safe",
-    "Packages": ["Basic"],
+    "Packages": [
+      "Basic"
+    ],
     "RequiresExplorerRestart": true,
     "RequiresReboot": false,
-    "Path": "Optimizations/15_HideTaskbarWidgets.ps1"
+    "Path": "Optimizations/15_HideTaskbarWidgets.ps1",
+    "SupportedOS": [
+      "Windows 11"
+    ]
   },
   {
     "Id": 16,
     "Category": "Optimization",
-    "Subcategory": "Telemetry & Privacy",
+    "Subcategory": "Telemetry \u0026 Privacy",
     "Name": "Disable Tips, Ads, Suggestions",
     "Description": "Stops Windows suggestions and background sponsored app downloads.",
     "Danger": "Safe",
-    "Packages": ["Basic"],
+    "Packages": [
+      "Basic"
+    ],
     "RequiresExplorerRestart": false,
     "RequiresReboot": false,
-    "Path": "Optimizations/16_DisableTipsAndAds.ps1"
+    "Path": "Optimizations/16_DisableTipsAndAds.ps1",
+    "SupportedOS": [
+      "All"
+    ]
   },
   {
     "Id": 17,
@@ -198,10 +278,15 @@
     "Name": "Storage Sense Auto Cleanup",
     "Description": "Cleans up temporary installation files and local folder caches automatically.",
     "Danger": "Safe",
-    "Packages": ["Basic"],
+    "Packages": [
+      "Basic"
+    ],
     "RequiresExplorerRestart": false,
     "RequiresReboot": false,
-    "Path": "Optimizations/17_StorageSenseAutoCleanup.ps1"
+    "Path": "Optimizations/17_StorageSenseAutoCleanup.ps1",
+    "SupportedOS": [
+      "All"
+    ]
   },
   {
     "Id": 18,
@@ -210,10 +295,15 @@
     "Name": "Disable HPET Timer",
     "Description": "Disables High Precision Event Timer to resolve stutter/latency in games.",
     "Danger": "Safe",
-    "Packages": ["Advanced"],
+    "Packages": [
+      "Advanced"
+    ],
     "RequiresExplorerRestart": false,
     "RequiresReboot": true,
-    "Path": "Optimizations/18_DisableHPETTimer.ps1"
+    "Path": "Optimizations/18_DisableHPETTimer.ps1",
+    "SupportedOS": [
+      "All"
+    ]
   },
   {
     "Id": 19,
@@ -222,10 +312,15 @@
     "Name": "Optimize Network Latency",
     "Description": "Disables Nagle's algorithm (TCP delay) on the active network interface card.",
     "Danger": "Safe",
-    "Packages": ["Advanced"],
+    "Packages": [
+      "Advanced"
+    ],
     "RequiresExplorerRestart": false,
     "RequiresReboot": false,
-    "Path": "Optimizations/19_OptimizeNetworkLatency.ps1"
+    "Path": "Optimizations/19_OptimizeNetworkLatency.ps1",
+    "SupportedOS": [
+      "All"
+    ]
   },
   {
     "Id": 20,
@@ -234,9 +329,14 @@
     "Name": "Enable GPU MSI Mode",
     "Description": "Forces GPU to use Message Signaled Interrupts (MSI) mode to prevent screen stutters.",
     "Danger": "Safe",
-    "Packages": ["Advanced"],
+    "Packages": [
+      "Advanced"
+    ],
     "RequiresExplorerRestart": false,
     "RequiresReboot": true,
-    "Path": "Optimizations/20_EnableGPUMSIMode.ps1"
+    "Path": "Optimizations/20_EnableGPUMSIMode.ps1",
+    "SupportedOS": [
+      "All"
+    ]
   }
 ]
