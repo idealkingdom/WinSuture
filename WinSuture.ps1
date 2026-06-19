@@ -113,7 +113,9 @@ $tweaks += $backups
 
 # Initialize runtime tracking members on all loaded manifest objects
 foreach ($t in $tweaks) {
-    $t | Add-Member -MemberType NoteProperty -Name "Selected" -Value $false -Force
+    # System Backup tasks (IDs 43-46) are enabled by default
+    $defaultSelected = ($t.Id -ge 43 -and $t.Id -le 46)
+    $t | Add-Member -MemberType NoteProperty -Name "Selected" -Value $defaultSelected -Force
     $t | Add-Member -MemberType NoteProperty -Name "ScanStatus" -Value "" -Force
 }
 
@@ -389,6 +391,10 @@ while ($true) {
         $recommendedIds = @()
         for ($i = 0; $i -lt $tweaks.Count; $i++) {
             $t = $tweaks[$i]
+            # Skip scanning backup/restore utility items (IDs 43-50)
+            if ($t.Id -ge 43) {
+                continue
+            }
             $sb = Get-TweakScript -item $t
             if ($null -eq $sb) {
                 $tweaks[$i].ScanStatus = "Error"
