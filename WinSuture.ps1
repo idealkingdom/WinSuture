@@ -1,5 +1,5 @@
-# WinSuture.ps1 - Hybrid Online/Offline CLI Windows Suture Tool
-# Requires Administrator privileges
+# Force console output encoding to UTF-8 to display Unicode characters correctly
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 
 # Check for Administrator elevation
 if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
