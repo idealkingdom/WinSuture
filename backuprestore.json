@@ -1,0 +1,98 @@
+[
+  {
+    "Id": 43,
+    "Category": "BackupRestore",
+    "Subcategory": "System Backups",
+    "Name": "Create Restore Point",
+    "Description": "Creates a new Windows System Restore Point checkpoint for rollback.",
+    "Danger": "Safe",
+    "Packages": ["Backups"],
+    "RequiresExplorerRestart": false,
+    "RequiresReboot": false,
+    "Path": "BackupRestore/43_CreateRestorePoint.ps1"
+  },
+  {
+    "Id": 44,
+    "Category": "BackupRestore",
+    "Subcategory": "System Backups",
+    "Name": "Export Registry Hives",
+    "Description": "Exports current user (HKCU) and local machine (SOFTWARE/SYSTEM) hives to .reg files.",
+    "Danger": "Safe",
+    "Packages": ["Backups"],
+    "RequiresExplorerRestart": false,
+    "RequiresReboot": false,
+    "Path": "BackupRestore/44_BackupRegistryHives.ps1"
+  },
+  {
+    "Id": 45,
+    "Category": "BackupRestore",
+    "Subcategory": "System Backups",
+    "Name": "Backup hosts File",
+    "Description": "Copies the local system hosts lookup file to a backup hosts.bak file.",
+    "Danger": "Safe",
+    "Packages": ["Backups"],
+    "RequiresExplorerRestart": false,
+    "RequiresReboot": false,
+    "Path": "BackupRestore/45_BackupHostsFile.ps1"
+  },
+  {
+    "Id": 46,
+    "Category": "BackupRestore",
+    "Subcategory": "System Backups",
+    "Name": "Backup Network Settings",
+    "Description": "Logs all active IP addresses, adapters, and DNS servers to diagnostic reports.",
+    "Danger": "Safe",
+    "Packages": ["Backups"],
+    "RequiresExplorerRestart": false,
+    "RequiresReboot": false,
+    "Path": "BackupRestore/46_BackupNetworkConfig.ps1"
+  },
+  {
+    "Id": 47,
+    "Category": "BackupRestore",
+    "Subcategory": "System Restores",
+    "Name": "Restore System Restore Point",
+    "Description": "Launches the native Windows System Restore interface wizard (rstrui.exe).",
+    "Danger": "Safe",
+    "Packages": ["Restores"],
+    "RequiresExplorerRestart": false,
+    "RequiresReboot": true,
+    "Path": "BackupRestore/47_RestoreSystemRestorePoint.ps1"
+  },
+  {
+    "Id": 48,
+    "Category": "BackupRestore",
+    "Subcategory": "System Restores",
+    "Name": "Restore Registry Hives",
+    "Description": "Imports the HKCU, SOFTWARE, or SYSTEM registry hive files from a Desktop backup folder.",
+    "Danger": "Dangerous",
+    "Packages": ["Restores"],
+    "RequiresExplorerRestart": true,
+    "RequiresReboot": true,
+    "Path": "BackupRestore/48_RestoreRegistryHives.ps1"
+  },
+  {
+    "Id": 49,
+    "Category": "BackupRestore",
+    "Subcategory": "System Restores",
+    "Name": "Restore hosts File",
+    "Description": "Restores the backup hosts file template to replace the system hosts configuration.",
+    "Danger": "Safe",
+    "Packages": ["Restores"],
+    "RequiresExplorerRestart": false,
+    "RequiresReboot": false,
+    "Path": "BackupRestore/49_RestoreHostsFile.ps1"
+  },
+  {
+    "Id": 50,
+    "Category": "BackupRestore",
+    "Subcategory": "System Restores",
+    "Name": "Restore Network Settings",
+    "Description": "Resets Winsock sockets, clears IP parameters, and flushes DNS client server definitions.",
+    "Danger": "Safe",
+    "Packages": ["Restores"],
+    "RequiresExplorerRestart": false,
+    "RequiresReboot": true,
+    "Path": "BackupRestore/50_RestoreNetworkConfig.ps1"
+  }
+]
