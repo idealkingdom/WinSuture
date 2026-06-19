@@ -11,8 +11,17 @@ if ($Mode -eq "Check") {
         return $false
     }
     
-    $desktop = [Environment]::GetFolderPath("Desktop")
-    $backups = Get-ChildItem -Path $desktop -Filter "WinSuture_Backup_*" -Directory -ErrorAction SilentlyContinue
+    $baseDir = $PSScriptRoot
+    if ($null -ne $global:WinSutureScriptRoot) {
+        $baseDir = $global:WinSutureScriptRoot
+    } elseif ($baseDir -like "*BackupRestore") {
+        $baseDir = Split-Path -Path $baseDir -Parent
+    }
+    if ($null -eq $baseDir -or $baseDir -eq "") {
+        $baseDir = Get-Location
+    }
+    
+    $backups = Get-ChildItem -Path $baseDir -Filter "WinSuture_Backup_*" -Directory -ErrorAction SilentlyContinue
     if (-not $backups) { return $true }
     
     foreach ($b in $backups) {
@@ -32,9 +41,18 @@ elseif ($Mode -eq "Apply") {
     
     # Establish shared backup folder for the current run session
     if ($null -eq $global:WinSutureBackupDir) {
-        $desktop = [Environment]::GetFolderPath("Desktop")
+        $baseDir = $PSScriptRoot
+        if ($null -ne $global:WinSutureScriptRoot) {
+            $baseDir = $global:WinSutureScriptRoot
+        } elseif ($baseDir -like "*BackupRestore") {
+            $baseDir = Split-Path -Path $baseDir -Parent
+        }
+        if ($null -eq $baseDir -or $baseDir -eq "") {
+            $baseDir = Get-Location
+        }
+        
         $timestamp = Get-Date -Format 'yyyyMMdd_HHmmss'
-        $global:WinSutureBackupDir = Join-Path $desktop "WinSuture_Backup_$timestamp"
+        $global:WinSutureBackupDir = Join-Path $baseDir "WinSuture_Backup_$timestamp"
     }
     $backupDir = $global:WinSutureBackupDir
     
