@@ -4,11 +4,19 @@ param(
     [string]$Mode
 )
 
-$desktop = [Environment]::GetFolderPath("Desktop")
+$baseDir = $PSScriptRoot
+if ($null -ne $global:WinSutureScriptRoot) {
+    $baseDir = $global:WinSutureScriptRoot
+} elseif ($baseDir -like "*BackupRestore") {
+    $baseDir = Split-Path -Path $baseDir -Parent
+}
+if ($null -eq $baseDir -or $baseDir -eq "") {
+    $baseDir = Get-Location
+}
 
 if ($Mode -eq "Check") {
-    # Scan logic: returns $true if there is at least one backup folder on the Desktop
-    $backups = Get-ChildItem -Path $desktop -Filter "WinSuture_Backup_*" -Directory -ErrorAction SilentlyContinue
+    # Scan logic: returns $true if there is at least one backup folder in the base directory
+    $backups = Get-ChildItem -Path $baseDir -Filter "WinSuture_Backup_*" -Directory -ErrorAction SilentlyContinue
     if ($null -ne $backups -and $backups.Count -gt 0) {
         return $true
     }
@@ -16,27 +24,31 @@ if ($Mode -eq "Check") {
 }
 elseif ($Mode -eq "Apply") {
     Write-Host "[*] Registry Hive Restoration..."
-    $backups = Get-ChildItem -Path $desktop -Filter "WinSuture_Backup_*" -Directory -ErrorAction SilentlyContinue | Sort-Object CreationTime -Descending
-    
     $targetDir = ""
-    if (-not $backups -or $backups.Count -eq 0) {
-        Write-Host "[-] No backup folders found on the Desktop." -ForegroundColor Red
-        $manualPath = Read-Host "Please enter the absolute path to your backup directory (or leave empty to cancel)"
-        if ([string]::IsNullOrWhiteSpace($manualPath)) { return }
-        $targetDir = $manualPath
+    if ($null -ne $global:WinSutureRestoreFolder -and (Test-Path $global:WinSutureRestoreFolder)) {
+        $targetDir = $global:WinSutureRestoreFolder
+        Write-Host "[+] Using selected restore folder: $targetDir" -ForegroundColor Green
     } else {
-        Write-Host "Found the following registry backups on your desktop:" -ForegroundColor Yellow
-        for ($i = 0; $i -lt $backups.Count; $i++) {
-            Write-Host "  [$i] $($backups[$i].Name) (Created: $($backups[$i].CreationTime))" -ForegroundColor White
-        }
-        Write-Host ""
-        $selection = Read-Host "Choose the index of the backup you want to restore (or enter absolute path, or leave empty to cancel)"
-        if ([string]::IsNullOrWhiteSpace($selection)) { return }
-        
-        if ($selection -match '^\d+$' -and [int]$selection -lt $backups.Count) {
-            $targetDir = $backups[[int]$selection].FullName
+        $backups = Get-ChildItem -Path $baseDir -Filter "WinSuture_Backup_*" -Directory -ErrorAction SilentlyContinue | Sort-Object CreationTime -Descending
+        if (-not $backups -or $backups.Count -eq 0) {
+            Write-Host "[-] No backup folders found in the script directory." -ForegroundColor Red
+            $manualPath = Read-Host "Please enter the absolute path to your backup directory (or leave empty to cancel)"
+            if ([string]::IsNullOrWhiteSpace($manualPath)) { return }
+            $targetDir = $manualPath
         } else {
-            $targetDir = $selection
+            Write-Host "Found the following registry backups in the script directory:" -ForegroundColor Yellow
+            for ($i = 0; $i -lt $backups.Count; $i++) {
+                Write-Host "  [$i] $($backups[$i].Name) (Created: $($backups[$i].CreationTime))" -ForegroundColor White
+            }
+            Write-Host ""
+            $selection = Read-Host "Choose the index of the backup you want to restore (or enter absolute path, or leave empty to cancel)"
+            if ([string]::IsNullOrWhiteSpace($selection)) { return }
+            
+            if ($selection -match '^\d+$' -and [int]$selection -lt $backups.Count) {
+                $targetDir = $backups[[int]$selection].FullName
+            } else {
+                $targetDir = $selection
+            }
         }
     }
     
