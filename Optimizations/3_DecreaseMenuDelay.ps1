@@ -1,6 +1,6 @@
 param(
     [Parameter(Mandatory=$true)]
-    [ValidateSet("Check", "Apply")]
+    [ValidateSet("Check", "Apply", "Disable")]
     [string]$Mode
 )
 
@@ -9,4 +9,7 @@ if ($Mode -eq "Check") {
 }
 elseif ($Mode -eq "Apply") {
     Set-ItemProperty -Path "HKCU:\Control Panel\Desktop" -Name "MenuShowDelay" -Value "20" -Type String -Force | Out-Null
+}
+elseif ($Mode -eq "Disable") {
+    Set-ItemProperty -Path "HKCU:\Control Panel\Desktop" -Name "MenuShowDelay" -Value "400" -Type String -Force | Out-Null
 }
