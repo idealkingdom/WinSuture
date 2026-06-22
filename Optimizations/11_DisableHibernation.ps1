@@ -1,6 +1,6 @@
 param(
     [Parameter(Mandatory=$true)]
-    [ValidateSet("Check", "Apply")]
+    [ValidateSet("Check", "Apply", "Disable")]
     [string]$Mode
 )
 
@@ -9,4 +9,7 @@ if ($Mode -eq "Check") {
 }
 elseif ($Mode -eq "Apply") {
     powercfg -h off
+}
+elseif ($Mode -eq "Disable") {
+    powercfg -h on
 }
