@@ -3,183 +3,401 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WinSuture</title>
+    <title>WinSuture | Modern Windows Enhancement</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-color: #0f172a;
-            --card-bg: rgba(30, 41, 59, 0.7);
-            --text-main: #f8fafc;
-            --text-muted: #94a3b8;
+            --bg-base: #000000;
+            --bg-surface: #0a0a0a;
+            --border-color: #222222;
+            --text-primary: #ffffff;
+            --text-secondary: #a1a1aa;
             --accent: #3b82f6;
-            --accent-hover: #2563eb;
+            --accent-glow: rgba(59, 130, 246, 0.5);
+            --gradient-1: #3b82f6;
+            --gradient-2: #8b5cf6;
+        }
+
+        /* Modern Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: var(--bg-base);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #333;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
         }
 
         body {
-            margin: 0;
-            padding: 0;
-            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
-            color: var(--text-main);
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-base);
+            color: var(--text-primary);
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
+            overflow: hidden;
+            position: relative;
         }
 
-        .container {
-            background: var(--card-bg);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 24px;
-            padding: 3rem;
-            max-width: 600px;
-            width: 90%;
+        /* Ambient glowing orbs in background */
+        .orb-1 {
+            position: absolute;
+            top: -20%;
+            left: -10%;
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, var(--gradient-2) 0%, transparent 60%);
+            opacity: 0.15;
+            filter: blur(80px);
+            animation: float 20s ease-in-out infinite alternate;
+        }
+
+        .orb-2 {
+            position: absolute;
+            bottom: -20%;
+            right: -10%;
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, var(--gradient-1) 0%, transparent 60%);
+            opacity: 0.15;
+            filter: blur(80px);
+            animation: float 15s ease-in-out infinite alternate-reverse;
+        }
+
+        @keyframes float {
+            0% { transform: translate(0, 0) scale(1); }
+            100% { transform: translate(50px, 50px) scale(1.1); }
+        }
+
+        .hero-section {
+            position: relative;
+            z-index: 10;
+            width: 100%;
+            max-width: 800px;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
             text-align: center;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-            animation: fade-in 0.8s ease-out forwards;
         }
 
-        @keyframes fade-in {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
+        .icon-wrapper {
+            margin-bottom: 2rem;
+            position: relative;
+            display: inline-flex;
+            padding: 4px;
+            border-radius: 24px;
+            background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0));
+            box-shadow: 0 0 0 1px rgba(255,255,255,0.05), 0 20px 40px -10px rgba(0,0,0,0.5);
+            animation: scale-in 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            opacity: 0;
+            transform: scale(0.9);
         }
 
-        .icon-container {
-            margin-bottom: 1.5rem;
+        .icon-wrapper::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+            padding: 2px;
+            background: linear-gradient(135deg, var(--gradient-1), var(--gradient-2));
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            opacity: 0.5;
         }
 
-        .icon-container img {
+        .icon-wrapper img {
             width: 80px;
             height: 80px;
-            border-radius: 50%;
-            border: 2px solid rgba(255, 255, 255, 0.1);
-            background: rgba(255, 255, 255, 0.05);
-            padding: 10px;
+            border-radius: 20px;
+            object-fit: cover;
+            background: var(--bg-surface);
         }
 
         h1 {
-            margin: 0 0 0.5rem;
-            font-size: 2.5rem;
-            font-weight: 700;
-            letter-spacing: -0.025em;
-            background: linear-gradient(to right, #60a5fa, #a78bfa);
+            font-size: clamp(3rem, 5vw, 4.5rem);
+            font-weight: 800;
+            letter-spacing: -0.04em;
+            line-height: 1.1;
+            margin-bottom: 1.5rem;
+            background: linear-gradient(to right bottom, #ffffff 30%, #a1a1aa);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
+            opacity: 0;
+            animation: fade-up 1s cubic-bezier(0.16, 1, 0.3, 1) 0.1s forwards;
+            transform: translateY(20px);
         }
 
-        p {
-            color: var(--text-muted);
-            font-size: 1.1rem;
+        p.subtitle {
+            font-size: clamp(1.1rem, 2vw, 1.25rem);
+            color: var(--text-secondary);
+            max-width: 500px;
             line-height: 1.6;
-            margin: 0 0 2rem;
+            margin-bottom: 3rem;
+            opacity: 0;
+            animation: fade-up 1s cubic-bezier(0.16, 1, 0.3, 1) 0.2s forwards;
+            transform: translateY(20px);
         }
 
-        .command-box {
+        /* Modern Terminal Box */
+        .terminal {
+            width: 100%;
+            background: rgba(10, 10, 10, 0.8);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 30px 60px -20px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255,255,255,0.05);
+            backdrop-filter: blur(20px);
+            opacity: 0;
+            animation: fade-up 1s cubic-bezier(0.16, 1, 0.3, 1) 0.3s forwards;
+            transform: translateY(20px);
+            text-align: left;
+        }
+
+        .terminal-header {
             display: flex;
             align-items: center;
-            background: rgba(0, 0, 0, 0.4);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
-            padding: 0.5rem 0.5rem 0.5rem 1rem;
-            transition: all 0.2s;
+            padding: 1rem 1.5rem;
+            background: rgba(255, 255, 255, 0.02);
+            border-bottom: 1px solid var(--border-color);
         }
 
-        .command-box:hover {
-            border-color: rgba(255, 255, 255, 0.2);
-            box-shadow: 0 0 15px rgba(59, 130, 246, 0.2);
+        .mac-dots {
+            display: flex;
+            gap: 8px;
         }
 
-        .command-text {
-            flex-grow: 1;
-            font-family: 'Consolas', 'Monaco', monospace;
-            font-size: 0.9rem;
+        .mac-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+        .mac-dot.red { background-color: #ff5f56; }
+        .mac-dot.yellow { background-color: #ffbd2e; }
+        .mac-dot.green { background-color: #27c93f; }
+
+        .terminal-title {
+            margin-left: 1rem;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 500;
+        }
+
+        .terminal-body {
+            padding: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+        }
+
+        .code-block {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.95rem;
             color: #e2e8f0;
-            text-align: left;
             overflow-x: auto;
             white-space: nowrap;
-            padding-right: 1rem;
-            user-select: all;
+            padding-bottom: 4px;
         }
 
-        .copy-btn {
-            background: var(--accent);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            padding: 0.6rem 1.2rem;
+        .code-block::-webkit-scrollbar {
+            height: 4px;
+        }
+
+        .prompt {
+            color: var(--gradient-1);
+            margin-right: 12px;
+            user-select: none;
+        }
+
+        /* Modern Button */
+        .copy-button {
+            position: relative;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: var(--text-primary);
+            padding: 0.75rem 1.25rem;
+            border-radius: 10px;
+            font-family: 'Inter', sans-serif;
             font-size: 0.9rem;
-            font-weight: 600;
+            font-weight: 500;
             cursor: pointer;
-            transition: background-color 0.2s;
+            transition: all 0.2s ease;
             display: flex;
             align-items: center;
-            gap: 0.5rem;
+            gap: 8px;
+            overflow: hidden;
+            flex-shrink: 0;
         }
 
-        .copy-btn:hover {
-            background: var(--accent-hover);
+        .copy-button:hover {
+            background: rgba(255,255,255,0.1);
+            border-color: rgba(255,255,255,0.2);
+            box-shadow: 0 0 20px var(--accent-glow);
         }
 
-        .copy-btn:active {
-            transform: scale(0.98);
+        .copy-button:active {
+            transform: scale(0.96);
         }
 
+        .copy-button::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(120deg, transparent, rgba(255,255,255,0.2), transparent);
+            transform: translateX(-100%);
+            transition: transform 0.5s ease;
+        }
+
+        .copy-button:hover::after {
+            transform: translateX(100%);
+        }
+
+        /* Animations */
+        @keyframes fade-up {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes scale-in {
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        /* Toast Notification */
         .toast {
             position: fixed;
-            bottom: 2rem;
+            bottom: 30px;
             left: 50%;
             transform: translateX(-50%) translateY(100px);
-            background: #10b981;
-            color: white;
-            padding: 0.75rem 1.5rem;
-            border-radius: 99px;
-            font-weight: 500;
+            background: #ffffff;
+            color: #000000;
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 20px 40px -10px rgba(0,0,0,0.5);
             opacity: 0;
-            transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-            z-index: 50;
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            z-index: 100;
         }
 
-        .toast.show {
+        .toast.visible {
             transform: translateX(-50%) translateY(0);
             opacity: 1;
+        }
+
+        .toast svg {
+            color: #10b981;
+        }
+
+        /* Responsive */
+        @media (max-width: 640px) {
+            .terminal-body {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .copy-button {
+                width: 100%;
+                justify-content: center;
+            }
+            .code-block {
+                width: 100%;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="icon-container">
-            <img src="https://media.giphy.com/media/3o85xwxr06YNoFdSbm/giphy.gif" alt="Coffee">
+    <div class="orb-1"></div>
+    <div class="orb-2"></div>
+
+    <div class="hero-section">
+        <div class="icon-wrapper">
+            <img src="https://media.giphy.com/media/3o85xwxr06YNoFdSbm/giphy.gif" alt="Coffee Icon">
         </div>
-        <h1>WinSuture</h1>
-        <p>A powerful, lightweight Windows enhancement and repair suite.</p>
         
-        <div class="command-box">
-            <div class="command-text" id="command">irm https://raw.githubusercontent.com/idealkingdom/WinSuture/main/WinSuture.ps1 | iex</div>
-            <button class="copy-btn" onclick="copyCommand()">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                </svg>
-                Copy
-            </button>
+        <h1>WinSuture</h1>
+        <p class="subtitle">A premium, lightweight Windows enhancement suite. Optimize and repair your system with a single command.</p>
+        
+        <div class="terminal">
+            <div class="terminal-header">
+                <div class="mac-dots">
+                    <div class="mac-dot red"></div>
+                    <div class="mac-dot yellow"></div>
+                    <div class="mac-dot green"></div>
+                </div>
+                <div class="terminal-title">powershell</div>
+            </div>
+            <div class="terminal-body">
+                <div class="code-block" id="command-text"><span class="prompt">PS&gt;</span>irm https://raw.githubusercontent.com/idealkingdom/WinSuture/main/WinSuture.ps1 | iex</div>
+                <button class="copy-button" onclick="copyCommand()">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                    </svg>
+                    <span>Copy</span>
+                </button>
+            </div>
         </div>
     </div>
 
-    <div class="toast" id="toast">Command copied to clipboard!</div>
+    <div class="toast" id="toast">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+        Copied to clipboard
+    </div>
 
     <script>
         function copyCommand() {
-            const commandText = document.getElementById('command').innerText;
-            navigator.clipboard.writeText(commandText).then(() => {
+            // Get text without the prompt
+            const rawText = "irm https://raw.githubusercontent.com/idealkingdom/WinSuture/main/WinSuture.ps1 | iex";
+            
+            navigator.clipboard.writeText(rawText).then(() => {
                 const toast = document.getElementById('toast');
-                toast.classList.add('show');
+                toast.classList.add('visible');
+                
+                // Change button appearance temporarily
+                const btn = document.querySelector('.copy-button');
+                const originalHtml = btn.innerHTML;
+                btn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg><span>Copied</span>`;
+                btn.style.borderColor = "rgba(16, 185, 129, 0.4)";
+                btn.style.boxShadow = "0 0 20px rgba(16, 185, 129, 0.2)";
+                
                 setTimeout(() => {
-                    toast.classList.remove('show');
-                }, 3000);
+                    toast.classList.remove('visible');
+                    btn.innerHTML = originalHtml;
+                    btn.style.borderColor = "";
+                    btn.style.boxShadow = "";
+                }, 2500);
             }).catch(err => {
-                console.error('Failed to copy:', err);
+                console.error('Failed to copy text: ', err);
             });
         }
     </script>
