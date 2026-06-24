@@ -9,7 +9,7 @@ if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdenti
 }
 
 # --- CONFIGURATION ---
-$githubBaseUrl = "https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_REPO/main"
+$githubBaseUrl = "https://raw.githubusercontent.com/idealkingdom/WinSuture/main"
 $global:WinSutureScriptRoot = $PSScriptRoot
 
 # Safe Mode detection (SAFEBOOT environment variable is present in Safe Mode)
@@ -105,13 +105,15 @@ function Get-TweakScript {
     )
     
     # Check for local file path relative to the directory of this loader script
-    $localPath = Join-Path $PSScriptRoot $item.Path
-    if (Test-Path $localPath) {
-        try {
-            $code = Get-Content -Path $localPath -Raw -ErrorAction Stop
-            return [scriptblock]::Create($code)
-        } catch {
-            Write-Warning "Failed to read local file '$localPath'. Attempting cloud fallback..."
+    if (-not [string]::IsNullOrEmpty($PSScriptRoot)) {
+        $localPath = Join-Path $PSScriptRoot $item.Path
+        if (Test-Path $localPath) {
+            try {
+                $code = Get-Content -Path $localPath -Raw -ErrorAction Stop
+                return [scriptblock]::Create($code)
+            } catch {
+                Write-Warning "Failed to read local file '$localPath'. Attempting cloud fallback..."
+            }
         }
     }
     
@@ -131,15 +133,17 @@ function Load-ManifestFile {
     param(
         [string]$filename
     )
-    $localPath = Join-Path $PSScriptRoot $filename
     $data = $null
     
-    if (Test-Path $localPath) {
-        try {
-            $json = Get-Content -Path $localPath -Raw -ErrorAction Stop
-            $data = ConvertFrom-Json $json
-        } catch {
-            Write-Warning "Failed to read local $filename. Attempting cloud download fallback..."
+    if (-not [string]::IsNullOrEmpty($PSScriptRoot)) {
+        $localPath = Join-Path $PSScriptRoot $filename
+        if (Test-Path $localPath) {
+            try {
+                $json = Get-Content -Path $localPath -Raw -ErrorAction Stop
+                $data = ConvertFrom-Json $json
+            } catch {
+                Write-Warning "Failed to read local $filename. Attempting cloud download fallback..."
+            }
         }
     }
     
