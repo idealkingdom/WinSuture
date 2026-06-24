@@ -10,12 +10,92 @@ if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdenti
 
 # --- CONFIGURATION ---
 $githubBaseUrl = "https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_REPO/main"
+$global:WinSutureScriptRoot = $PSScriptRoot
 
 # Safe Mode detection (SAFEBOOT environment variable is present in Safe Mode)
 $isSafeMode = $null -ne [System.Environment]::GetEnvironmentVariable("SAFEBOOT")
 
+# --- SYSTEM INFORMATION & VERSION CHECK ---
+$osName = "Windows"
+$osVersion = "Unknown"
+$osBuild = 0
+try {
+    $os = Get-CimInstance Win32_OperatingSystem -ErrorAction SilentlyContinue
+    if ($null -ne $os) {
+        $osName = $os.Caption
+        $osVersion = $os.Version
+    } else {
+        $os = Get-WmiObject Win32_OperatingSystem -ErrorAction SilentlyContinue
+        if ($null -ne $os) {
+            $osName = $os.Caption
+            $osVersion = $os.Version
+        }
+    }
+} catch {
+    $osVersion = [System.Environment]::OSVersion.Version.ToString()
+}
+
+if ($osVersion -match '^\d+\.\d+\.(\d+)') {
+    $osBuild = [int]$Matches[1]
+} elseif ($osVersion -match '^(\d+)') {
+    $osBuild = [int]$Matches[1]
+}
+
+# WinSuture is tested/supported up to Windows 10 Build 19045 (22H2) and Windows 11 Build 26200 (25H2)
+$isFullyTested = $false
+if ($osName -like "*Windows 10*") {
+    if ($osBuild -le 19045) { $isFullyTested = $true }
+} elseif ($osName -like "*Windows 11*") {
+    if ($osBuild -le 26200) { $isFullyTested = $true }
+}
+
 
 # --- HELPER FUNCTIONS ---
+
+# Helper to query system restore points compatibly across PowerShell 5.1 and 7.x
+function Get-RestorePointsSafe {
+    $points = @()
+    if (Get-Command Get-ComputerRestorePoint -ErrorAction SilentlyContinue) {
+        try {
+            $points = @(Get-ComputerRestorePoint -ErrorAction Stop)
+        } catch {
+            $points = @()
+        }
+    }
+    if ($points.Count -eq 0) {
+        try {
+            $points = @(Get-CimInstance -Namespace root/default -ClassName SystemRestore -ErrorAction Stop)
+        } catch {
+            $points = @()
+        }
+    }
+    $normalized = foreach ($p in $points) {
+        $ctime = $p.CreationTime
+        if ($ctime -is [string]) {
+            if ($ctime -match '^\d{14}\.') {
+                try {
+                    $ctime = [Management.ManagementDateTimeConverter]::ToDateTime($ctime)
+                } catch {
+                    try {
+                        $ctime = [DateTime]::Parse($ctime)
+                    } catch {}
+                }
+            } else {
+                try {
+                    $ctime = [DateTime]::Parse($ctime)
+                } catch {}
+            }
+        }
+        [PSCustomObject]@{
+            SequenceNumber    = $p.SequenceNumber
+            Description       = $p.Description
+            CreationTime      = $ctime
+            RestorePointType  = $p.RestorePointType
+            EventType         = $p.EventType
+        }
+    }
+    return $normalized
+}
 
 # Helper to load a tweak's unified scriptblock (sourcing from local relative directory or GitHub raw fallback)
 function Get-TweakScript {
@@ -91,10 +171,25 @@ $tweaks += $backups
 
 # Initialize runtime tracking members on all loaded manifest objects
 foreach ($t in $tweaks) {
-    # System Backup tasks (IDs 43-46) are enabled by default
-    $defaultSelected = ($t.Id -ge 43 -and $t.Id -le 46)
+    $isSupported = $true
+    if ($null -ne $t.SupportedOS) {
+        $isSupported = $false
+        foreach ($os in $t.SupportedOS) {
+            if ($os -eq "All" -or $osName -like "*$os*") {
+                $isSupported = $true
+                break
+            }
+        }
+    }
+    $t | Add-Member -MemberType NoteProperty -Name "IsSupported" -Value $isSupported -Force
+
+    # Backup tasks are no longer selected by default as they are chosen dynamically pre-run
+    $defaultSelected = $false
     $t | Add-Member -MemberType NoteProperty -Name "Selected" -Value $defaultSelected -Force
     $t | Add-Member -MemberType NoteProperty -Name "ScanStatus" -Value "" -Force
+    
+    $reversible = $t.Category -eq "Optimization"
+    $t | Add-Member -MemberType NoteProperty -Name "Reversible" -Value $reversible -Force
 }
 
 # Helper to clear the console screen and scrollback buffer robustly
@@ -186,18 +281,18 @@ function Draw-Header {
     if ($script:activeScreen -ne "M") {
         $tabO = if ($script:activeScreen -eq "O") { "[*] OPTIMIZATIONS" } else { "    OPTIMIZATIONS" }
         $tabR = if ($script:activeScreen -eq "R") { "[*] REPAIRS      " } else { "    REPAIRS      " }
-        $tabB = if ($script:activeScreen -eq "B") { "[*] BACKUP & REST" } else { "    BACKUP & REST" }
+        $tabRS = if ($script:activeScreen -eq "RS") { "[*] RESTORES     " } else { "    RESTORES     " }
         
         $colorO = if ($script:activeScreen -eq "O") { "Green" } else { "Gray" }
         $colorR = if ($script:activeScreen -eq "R") { "Green" } else { "Gray" }
-        $colorB = if ($script:activeScreen -eq "B") { "Green" } else { "Gray" }
+        $colorRS = if ($script:activeScreen -eq "RS") { "Green" } else { "Gray" }
         
         Write-Host "  " -NoNewline
         Write-Host $tabO -ForegroundColor $colorO -NoNewline
-        Write-Host "  |  " -ForegroundColor Cyan -NoNewline
+        Write-Host " | " -ForegroundColor Cyan -NoNewline
         Write-Host $tabR -ForegroundColor $colorR -NoNewline
-        Write-Host "  |  " -ForegroundColor Cyan -NoNewline
-        Write-Host $tabB -ForegroundColor $colorB
+        Write-Host " | " -ForegroundColor Cyan -NoNewline
+        Write-Host $tabRS -ForegroundColor $colorRS
         
         Write-Host "========================================================================================" -ForegroundColor Cyan
         if (-not $isSafeMode) {
@@ -220,70 +315,90 @@ $script:activeScreen = "M"
 
 # Shared task execution function
 function Invoke-RunSelected {
-    # Filter checked items
-    $selectedItems = $tweaks | Where-Object { $_.Selected -eq $true }
+    param(
+        [ValidateSet("Apply", "Disable")]
+        [string]$Action = "Apply"
+    )
+    # Filter checked items (Restores are run separately via the interactive Restore Wizard)
+    # 1. Filter optimizations and repairs selected by the user
+    $tweakOrRepairItems = if ($Action -eq "Disable") {
+        $tweaks | Where-Object { $_.Selected -eq $true -and $_.Reversible -eq $true -and $_.IsSupported -eq $true }
+    } else {
+        $tweaks | Where-Object { $_.Selected -eq $true -and $_.Category -ne "BackupRestore" -and $_.IsSupported -eq $true }
+    }
     
-    if ($selectedItems.Count -eq 0) {
-        $script:alertMessage = "No items selected to run. Please select items first!"
+    if ($tweakOrRepairItems.Count -eq 0) {
+        if ($Action -eq "Disable") {
+            $script:alertMessage = "No reversible items selected to revert. Please select reversible items first!"
+        } else {
+            $script:alertMessage = "No items selected to run. Please select items first!"
+        }
         $script:alertColor = "Red"
         return
     }
     
-    # 1. Safety check: Protect Restore tasks from running simultaneously with other system updates
-    $restoreItems = $selectedItems | Where-Object { $_.Id -ge 47 -and $_.Id -le 50 }
-    $otherItems = $selectedItems | Where-Object { $_.Id -lt 47 -or $_.Id -gt 50 }
+    # Pre-run Backup Prompt Loop
+    $selectedBackups = @{
+        43 = $true  # Create Restore Point
+        44 = $true  # Export Registry Hives
+        45 = $true  # Backup hosts File
+        46 = $true  # Backup Network Settings
+    }
     
-    if ($restoreItems.Count -gt 0 -and $otherItems.Count -gt 0) {
-        Draw-Header -subtitle "System Restore Safety Warning"
-        Write-Host "[!] WARNING: You have selected Restore tasks alongside other modifications/repairs." -ForegroundColor Yellow
-        Write-Host "    Restoring system configurations will overwrite settings and conflicts with current choices." -ForegroundColor Yellow
+    $backupLoop = $true
+    while ($backupLoop) {
+        Draw-Header -subtitle "Pre-Run Backup Selection"
+        Write-Host "  Before applying changes, select the backup components you want to run:" -ForegroundColor Cyan
         Write-Host ""
-        Write-Host "Selected Restore tasks:" -ForegroundColor Cyan
-        foreach ($r in $restoreItems) {
-            Write-Host "  - Item $($r.Id): $($r.Name)" -ForegroundColor Gray
-        }
+        
+        $chk43 = if ($selectedBackups[43]) { "[x]" } else { "[ ]" }
+        $chk44 = if ($selectedBackups[44]) { "[x]" } else { "[ ]" }
+        $chk45 = if ($selectedBackups[45]) { "[x]" } else { "[ ]" }
+        $chk46 = if ($selectedBackups[46]) { "[x]" } else { "[ ]" }
+        
+        Write-Host "    [1] $chk43 Create Restore Point       (Standard system checkpoint)" -ForegroundColor White
+        Write-Host "    [2] $chk44 Export Registry Hives      (Saves HKCU and key HKLM hives)" -ForegroundColor White
+        Write-Host "    [3] $chk45 Backup hosts File          (Saves network hosts configuration)" -ForegroundColor White
+        Write-Host "    [4] $chk46 Backup Network Settings    (Logs current DNS and IP config)" -ForegroundColor White
         Write-Host ""
-        Write-Host "Selected Other tasks:" -ForegroundColor Cyan
-        foreach ($o in $otherItems) {
-            Write-Host "  - Item $($o.Id): $($o.Name)" -ForegroundColor Gray
-        }
-        Write-Host ""
-        Write-Host "  Choices: [R] Run RESTORES ONLY | [B] Run BOTH anyway | [A] ABORT run" -ForegroundColor DarkCyan
-        $action = Read-Host "  Please choose an action"
-        $action = $action.Trim().ToUpper()
-        if ($action -eq "R") {
-            # Execute only restores
-            $selectedItems = $restoreItems
-        }
-        elseif ($action -eq "B") {
-            # Proceed with both
-        }
-        else {
+        Write-Host "========================================================================================" -ForegroundColor Cyan
+        Write-Host "  Inputs: 1, 2, 3, 4 to toggle | R to Run Tasks | S to Skip Backups | C to Cancel Execution" -ForegroundColor DarkCyan
+        
+        $bInput = Read-Host "  Backup Selection"
+        if ($null -eq $bInput) { continue }
+        $bInput = $bInput.Trim().ToUpper()
+        
+        if ($bInput -eq "C" -or $bInput -eq "CANCEL") {
             $script:alertMessage = "Action execution aborted by user."
             $script:alertColor = "Yellow"
             return
         }
+        elseif ($bInput -eq "S" -or $bInput -eq "SKIP") {
+            foreach ($key in $selectedBackups.Keys.Clone()) {
+                $selectedBackups[$key] = $false
+            }
+            $backupLoop = $false
+        }
+        elseif ($bInput -eq "R" -or $bInput -eq "RUN") {
+            $backupLoop = $false
+        }
+        elseif ($bInput -eq "1") { $selectedBackups[43] = -not $selectedBackups[43] }
+        elseif ($bInput -eq "2") { $selectedBackups[44] = -not $selectedBackups[44] }
+        elseif ($bInput -eq "3") { $selectedBackups[45] = -not $selectedBackups[45] }
+        elseif ($bInput -eq "4") { $selectedBackups[46] = -not $selectedBackups[46] }
     }
     
-    # 2. Safety check: Recommend backups before optimizations or repairs are applied
-    $tweakOrRepairItems = $selectedItems | Where-Object { $_.Id -ge 1 -and $_.Id -le 42 }
-    $backupItemsSelected = $selectedItems | Where-Object { $_.Id -ge 43 -and $_.Id -le 46 }
+    # Update selected status in main array
+    $backupItems = $tweaks | Where-Object { $_.Id -ge 43 -and $_.Id -le 46 }
+    foreach ($b in $backupItems) {
+        $b.Selected = $selectedBackups[$b.Id]
+    }
     
-    if ($tweakOrRepairItems.Count -gt 0 -and $backupItemsSelected.Count -eq 0) {
-        Draw-Header -subtitle "System Backup Recommendation"
-        Write-Host "[!] RECOMMENDATION: No backup tasks are checked for this execution run." -ForegroundColor Yellow
-        Write-Host "    It is strongly recommended to back up your system before applying changes." -ForegroundColor Yellow
-        Write-Host ""
-        $runBackup = Read-Host "  Would you like to run the backup suite first? (Y/N)"
-        if ($runBackup.Trim().ToUpper() -eq "Y") {
-            # Pre-select backup tasks dynamically for this run
-            $backupItems = $tweaks | Where-Object { $_.Id -ge 43 -and $_.Id -le 46 }
-            foreach ($b in $backupItems) {
-                $b.Selected = $true
-            }
-            # Refresh selectedItems list
-            $selectedItems = $tweaks | Where-Object { $_.Selected -eq $true }
-        }
+    # Final consolidated run list
+    $selectedItems = if ($Action -eq "Disable") {
+        $tweaks | Where-Object { ($_.Selected -eq $true -and $_.Reversible -eq $true -and $_.IsSupported -eq $true) -or ($_.Category -eq "BackupRestore" -and $_.Selected -eq $true) }
+    } else {
+        $tweaks | Where-Object { $_.Selected -eq $true -and $_.Subcategory -ne "System Restores" -and $_.IsSupported -eq $true }
     }
     
     # Check for dangerous items in the finalized run list
@@ -342,30 +457,73 @@ function Invoke-RunSelected {
     # Execute runner
     Draw-Header -subtitle "Running System Tasks..."
     
-    # Create Restore Point before executing
-    Write-Host "[*] Initiating pre-run safety checkpoints..." -ForegroundColor Yellow
-    try {
-        Checkpoint-Computer -Description "WinSutureRun" -RestorePointType "MODIFY_SETTINGS" -ErrorAction Stop | Out-Null
-        Write-Host "[+] Pre-run Restore Point created successfully!" -ForegroundColor Green
-    } catch {
-        Write-Host "[-] Warning: System Protection is disabled or Restore Point rate-limit reached. Proceeding anyway." -ForegroundColor Yellow
+    # Create Restore Point before executing (only if selected)
+    if ($selectedBackups[43]) {
+        Write-Host "[*] Initiating pre-run safety checkpoints..." -ForegroundColor Yellow
+        $checkpointSuccess = $false
+        try {
+            Checkpoint-Computer -Description "WinSutureRun" -RestorePointType "MODIFY_SETTINGS" -ErrorAction Stop | Out-Null
+            Write-Host "[+] Pre-run Restore Point created successfully!" -ForegroundColor Green
+            $checkpointSuccess = $true
+        } catch {
+            Write-Host "[-] Warning: Could not create Restore Point. System Protection may be disabled or rate-limited." -ForegroundColor Red
+            Write-Host ""
+            Write-Host "  Since system modifications are about to be applied, how would you like to proceed?" -ForegroundColor Cyan
+            Write-Host "    [1] Attempt to Enable System Protection on Drive C: and retry" -ForegroundColor White
+            Write-Host "    [2] Proceed anyway (WITHOUT a restore point)" -ForegroundColor Yellow
+            Write-Host "    [3] Abort execution" -ForegroundColor Red
+            Write-Host ""
+            
+            $choice = ""
+            while ($choice -notin @("1", "2", "3")) {
+                $choice = Read-Host "  Select an option (1, 2, or 3)"
+                if ($null -ne $choice) { $choice = $choice.Trim() }
+            }
+            
+            if ($choice -eq "1") {
+                Write-Host "[*] Attempting to enable System Protection on Drive C:..." -ForegroundColor Yellow
+                try {
+                    Enable-ComputerRestore -Drive "C:\" -ErrorAction Stop
+                    Write-Host "[+] System Protection enabled on Drive C:!" -ForegroundColor Green
+                    Write-Host "[*] Retrying Restore Point creation..." -ForegroundColor Yellow
+                    Checkpoint-Computer -Description "WinSutureRun" -RestorePointType "MODIFY_SETTINGS" -ErrorAction Stop | Out-Null
+                    Write-Host "[+] Pre-run Restore Point created successfully!" -ForegroundColor Green
+                    $checkpointSuccess = $true
+                } catch {
+                    Write-Host "[-] Failed to enable System Protection or create Restore Point: $_" -ForegroundColor Red
+                    Write-Host "    Note: You may need to manually enable System Protection in System Properties (sysdm.cpl)." -ForegroundColor Yellow
+                    $confirmProceed = Read-Host "  Proceed without a restore point anyway? (Y/N)"
+                    if ($null -eq $confirmProceed -or $confirmProceed.Trim().ToUpper() -ne "Y") {
+                        $script:alertMessage = "Action execution aborted by user due to missing restore point."
+                        $script:alertColor = "Yellow"
+                        return
+                    }
+                }
+            }
+            elseif ($choice -eq "3") {
+                $script:alertMessage = "Action execution aborted by user."
+                $script:alertColor = "Yellow"
+                return
+            }
+        }
+        Write-Host ""
     }
-    Write-Host ""
     
-    # Sort selected items: Backups (43-46) must run first!
+    # Sort selected items: Backups must run first! (excluding ID 43 since it was already run above)
     $sortedItems = @()
-    $sortedItems += $selectedItems | Where-Object { $_.Id -ge 43 -and $_.Id -le 46 }
-    $sortedItems += $selectedItems | Where-Object { $_.Id -lt 43 -or $_.Id -gt 46 }
+    $sortedItems += $selectedItems | Where-Object { $_.Category -eq "BackupRestore" -and $_.Subcategory -eq "System Backups" -and $_.Id -ne 43 }
+    $sortedItems += $selectedItems | Where-Object { $_.Category -ne "BackupRestore" -or $_.Subcategory -ne "System Backups" }
     
     foreach ($item in $sortedItems) {
-        Write-Host "[*] Executing Task $($item.Id): $($item.Name)..." -ForegroundColor Yellow
+        $modeToRun = if ($item.Category -eq "BackupRestore") { "Apply" } else { $Action }
+        Write-Host "[*] Executing Task $($item.Id): $($item.Name) ($modeToRun)..." -ForegroundColor Yellow
         $sb = Get-TweakScript -item $item
         if ($null -eq $sb) {
             Write-Host "    [FAILED] Error: Could not load script block" -ForegroundColor Red
             continue
         }
         try {
-            & $sb -Mode "Apply"
+            & $sb -Mode $modeToRun
             Write-Host "    [SUCCESS]" -ForegroundColor Green
         } catch {
             Write-Host "    [FAILED] Error: $_" -ForegroundColor Red
@@ -381,6 +539,377 @@ function Invoke-RunSelected {
     Pause
 }
 
+function Invoke-FolderRestoreSubmenu {
+    param(
+        [Parameter(Mandatory=$true)]
+        $folder
+    )
+    
+    $selectedReg = $true
+    $selectedHosts = $true
+    $selectedNet = $true
+    
+    $subAlertMessage = ""
+    $subAlertColor = "Yellow"
+    
+    while ($true) {
+        Draw-Header -subtitle "Restore Folder: $($folder.Name)"
+        
+        Write-Host "  Folder Path: $($folder.FullName)" -ForegroundColor Gray
+        Write-Host ""
+        Write-Host "  Select components to restore from this backup folder:" -ForegroundColor Cyan
+        
+        $chkReg = if ($selectedReg) { "[x]" } else { "[ ]" }
+        $chkHosts = if ($selectedHosts) { "[x]" } else { "[ ]" }
+        $chkNet = if ($selectedNet) { "[x]" } else { "[ ]" }
+        
+        Write-Host "    [1] $chkReg Registry Hives (Imports HKCU/SOFTWARE/SYSTEM hives)" -ForegroundColor White
+        Write-Host "    [2] $chkHosts hosts File     (Replaces system hosts configuration)" -ForegroundColor White
+        Write-Host "    [3] $chkNet Network Config  (Resets IP/Winsock catalog defaults)" -ForegroundColor White
+        Write-Host ""
+        Write-Host "========================================================================================" -ForegroundColor Cyan
+        
+        if ($subAlertMessage) {
+            Write-Host "  [*] $subAlertMessage" -ForegroundColor $subAlertColor
+            Write-Host "========================================================================================" -ForegroundColor Cyan
+            $subAlertMessage = ""
+        }
+        
+        Write-Host "  Inputs: 1, 2, or 3 to toggle selection | R to Run Restore | C to Cancel | HELP | Q to Quit" -ForegroundColor DarkCyan
+        $subInput = Read-Host "  WinSuture Folder Restore"
+        $subInput = $subInput.Trim().Replace("'", "").Replace('"', "").ToUpper()
+        
+        if ($subInput -eq "C" -or $subInput -eq "CANCEL") {
+            $script:alertMessage = "Folder restore cancelled."
+            $script:alertColor = "Yellow"
+            break
+        }
+        elseif ($subInput -eq "Q") {
+            Clear-Host
+            Write-Host "[+] Thank you for using WinSuture! Goodbye." -ForegroundColor Green
+            exit
+        }
+        elseif ($subInput -eq "SYS-REBOOT") {
+            Write-Host "  [*] Rebooting computer in 5 seconds..." -ForegroundColor Yellow
+            Start-Sleep -Seconds 5
+            Restart-Computer -Force
+            exit
+        }
+        elseif ($subInput -eq "SYS-REBOOT-SAFE") {
+            Write-Host "  [*] Configuring system for Safe Mode and rebooting in 5 seconds..." -ForegroundColor Yellow
+            bcdedit /set "{current}" safeboot minimal | Out-Null
+            Start-Sleep -Seconds 5
+            Restart-Computer -Force
+            exit
+        }
+        elseif ($subInput -eq "HELP") {
+            Draw-Header -subtitle "WinSuture CLI Help"
+            Write-Host "  Available Commands:" -ForegroundColor Yellow
+            Write-Host "  <id>,<id>        : Toggle selection of items (e.g., 1, 3, 5)" -ForegroundColor White
+            Write-Host "  <id> -D          : Display detailed description for an item (e.g., 1 -D)" -ForegroundColor White
+            Write-Host "  OPT              : Switch to Optimizations screen" -ForegroundColor White
+            Write-Host "  REP              : Switch to Repairs screen" -ForegroundColor White
+            Write-Host "  RST              : Switch to System Restores screen" -ForegroundColor White
+            Write-Host "  M / MAIN         : Return to Main Menu" -ForegroundColor White
+            Write-Host "  S                : Scan active category for recommended tweaks/repairs" -ForegroundColor White
+            Write-Host "  R                : Run all selected items" -ForegroundColor White
+            Write-Host "  C                : Clear all selections" -ForegroundColor White
+            Write-Host "  P1 / P2 / P3     : Toggle presets (Basic / Advanced / Repairs)" -ForegroundColor White
+            Write-Host "  SYS-REBOOT       : Reboot the computer normally" -ForegroundColor White
+            Write-Host "  SYS-REBOOT-SAFE  : Configure Safe Mode and reboot" -ForegroundColor White
+            Write-Host "  HELP             : Show this help screen" -ForegroundColor White
+            Write-Host "  Q                : Quit WinSuture" -ForegroundColor White
+            Write-Host "========================================================================================" -ForegroundColor Cyan
+            Pause
+            $subAlertMessage = "Help menu closed."
+            $subAlertColor = "Yellow"
+            continue
+        }
+        elseif ($subInput -eq "1") {
+            $selectedReg = -not $selectedReg
+            $subAlertMessage = "Toggled Registry Hives."
+            $subAlertColor = "Green"
+        }
+        elseif ($subInput -eq "2") {
+            $selectedHosts = -not $selectedHosts
+            $subAlertMessage = "Toggled hosts File."
+            $subAlertColor = "Green"
+        }
+        elseif ($subInput -eq "3") {
+            $selectedNet = -not $selectedNet
+            $subAlertMessage = "Toggled Network Config."
+            $subAlertColor = "Green"
+        }
+        elseif ($subInput -eq "R" -or $subInput -eq "RUN") {
+            if (-not $selectedReg -and -not $selectedHosts -and -not $selectedNet) {
+                $subAlertMessage = "Please select at least one component to restore!"
+                $subAlertColor = "Red"
+                continue
+            }
+            
+            Draw-Header -subtitle "Executing Selected Restores..."
+            
+            # Set the global restore folder variable that our scripts will check
+            $global:WinSutureRestoreFolder = $folder.FullName
+            
+            # Execute Registry Restore (ID 48)
+            if ($selectedReg) {
+                $item = $tweaks | Where-Object { $_.Id -eq 48 }
+                if ($null -ne $item) {
+                    Write-Host "[*] Running Registry Restore..." -ForegroundColor Yellow
+                    $sb = Get-TweakScript -item $item
+                    if ($null -ne $sb) {
+                        try {
+                            & $sb -Mode "Apply"
+                        } catch {
+                            Write-Host "    [FAILED] Error: $_" -ForegroundColor Red
+                        }
+                    } else {
+                        Write-Host "    [FAILED] Error: Could not load script block" -ForegroundColor Red
+                    }
+                    Write-Host ""
+                }
+            }
+            
+            # Execute hosts File Restore (ID 49)
+            if ($selectedHosts) {
+                $item = $tweaks | Where-Object { $_.Id -eq 49 }
+                if ($null -ne $item) {
+                    Write-Host "[*] Running hosts File Restore..." -ForegroundColor Yellow
+                    $sb = Get-TweakScript -item $item
+                    if ($null -ne $sb) {
+                        try {
+                            & $sb -Mode "Apply"
+                        } catch {
+                            Write-Host "    [FAILED] Error: $_" -ForegroundColor Red
+                        }
+                    } else {
+                        Write-Host "    [FAILED] Error: Could not load script block" -ForegroundColor Red
+                    }
+                    Write-Host ""
+                }
+            }
+            
+            # Execute Network Reset (ID 50)
+            if ($selectedNet) {
+                $item = $tweaks | Where-Object { $_.Id -eq 50 }
+                if ($null -ne $item) {
+                    Write-Host "[*] Running Network stack reset..." -ForegroundColor Yellow
+                    $sb = Get-TweakScript -item $item
+                    if ($null -ne $sb) {
+                        try {
+                            & $sb -Mode "Apply"
+                        } catch {
+                            Write-Host "    [FAILED] Error: $_" -ForegroundColor Red
+                        }
+                    } else {
+                        Write-Host "    [FAILED] Error: Could not load script block" -ForegroundColor Red
+                    }
+                    Write-Host ""
+                }
+            }
+            
+            # Reset global restore folder variable
+            $global:WinSutureRestoreFolder = $null
+            
+            Write-Host "========================================================================================" -ForegroundColor Cyan
+            Write-Host "  Selected restore operations completed!" -ForegroundColor Green
+            Write-Host "========================================================================================" -ForegroundColor Cyan
+            Pause
+            
+            $script:alertMessage = "Selected restore operations completed."
+            $script:alertColor = "Green"
+            break
+        }
+        else {
+            $subAlertMessage = "Invalid input: '$subInput'"
+            $subAlertColor = "Red"
+        }
+    }
+}
+
+function Invoke-RestoreWizard {
+    $wizardAlertMessage = $script:alertMessage
+    $wizardAlertColor = $script:alertColor
+    $script:alertMessage = "" # Clear global alert
+    
+    # 1. Detect restore points (wrapped in @() to force array casting for correct count evaluations)
+    $restorePoints = @()
+    try {
+        $restorePoints = @(Get-RestorePointsSafe | Sort-Object SequenceNumber -Descending)
+    } catch {}
+    
+    # 2. Detect script directory backup folders
+    $baseDir = $PSScriptRoot
+    if ($null -ne $global:WinSutureScriptRoot) {
+        $baseDir = $global:WinSutureScriptRoot
+    }
+    if ($null -eq $baseDir -or $baseDir -eq "") {
+        $baseDir = Get-Location
+    }
+    $backupDirs = @()
+    try {
+        $backupDirs = Get-ChildItem -Path $baseDir -Filter "WinSuture_Backup_*" -Directory -ErrorAction SilentlyContinue | Sort-Object CreationTime -Descending
+    } catch {}
+    
+    Draw-Header -subtitle "System Restore Wizard: Select a Restore Point or Backup Folder"
+    
+    # 3. Print System Restore Points
+    Write-Host " [System Restore Points]" -ForegroundColor Cyan
+    if ($restorePoints.Count -eq 0) {
+        Write-Host "   [-] No Windows system restore points found (or protection is disabled)." -ForegroundColor Gray
+    } else {
+        for ($i = 0; $i -lt $restorePoints.Count; $i++) {
+            $rp = $restorePoints[$i]
+            Write-Host "   [R$($i+1)] Sequence #$($rp.SequenceNumber) - $($rp.Description) (Created: $($rp.CreationTime))" -ForegroundColor White
+        }
+    }
+    Write-Host ""
+    
+    # 4. Print Local Backup Folders
+    Write-Host " [Local Script Backup Folders]" -ForegroundColor Cyan
+    if ($backupDirs.Count -eq 0) {
+        Write-Host "   [-] No local WinSuture backup folders found in the script directory." -ForegroundColor Gray
+    } else {
+        for ($i = 0; $i -lt $backupDirs.Count; $i++) {
+            $bd = $backupDirs[$i]
+            Write-Host "   [F$($i+1)] $($bd.Name) (Created: $($bd.CreationTime))" -ForegroundColor White
+        }
+    }
+    Write-Host ""
+    Write-Host "========================================================================================" -ForegroundColor Cyan
+    
+    if ($wizardAlertMessage) {
+        Write-Host "  [*] $wizardAlertMessage" -ForegroundColor $wizardAlertColor
+        Write-Host "========================================================================================" -ForegroundColor Cyan
+    }
+    
+    Write-Host "  Inputs: R1/R2... for Restore Point | F1/F2... for Local Backup | OPT/REP/RST to switch | M for Menu | HELP | Q to Quit" -ForegroundColor DarkCyan
+    $wizInput = Read-Host "  WinSuture Restore Wizard"
+    $wizInput = $wizInput.Trim().Replace("'", "").Replace('"', "").ToUpper()
+    
+    if ($wizInput -eq "Q") {
+        Clear-Host
+        Write-Host "[+] Thank you for using WinSuture! Goodbye." -ForegroundColor Green
+        exit
+    }
+    elseif ($wizInput -eq "SYS-REBOOT") {
+        Write-Host "  [*] Rebooting computer in 5 seconds..." -ForegroundColor Yellow
+        Start-Sleep -Seconds 5
+        Restart-Computer -Force
+        exit
+    }
+    elseif ($wizInput -eq "SYS-REBOOT-SAFE") {
+        Write-Host "  [*] Configuring system for Safe Mode and rebooting in 5 seconds..." -ForegroundColor Yellow
+        bcdedit /set "{current}" safeboot minimal | Out-Null
+        Start-Sleep -Seconds 5
+        Restart-Computer -Force
+        exit
+    }
+    elseif ($wizInput -eq "HELP") {
+        Draw-Header -subtitle "WinSuture CLI Help"
+        Write-Host "  Available Commands:" -ForegroundColor Yellow
+        Write-Host "  <id>,<id>        : Toggle selection of items (e.g., 1, 3, 5)" -ForegroundColor White
+        Write-Host "  <id> -D          : Display detailed description for an item (e.g., 1 -D)" -ForegroundColor White
+        Write-Host "  OPT              : Switch to Optimizations screen" -ForegroundColor White
+        Write-Host "  REP              : Switch to Repairs screen" -ForegroundColor White
+        Write-Host "  RST              : Switch to System Restores screen" -ForegroundColor White
+        Write-Host "  M / MAIN         : Return to Main Menu" -ForegroundColor White
+        Write-Host "  S                : Scan active category for recommended tweaks/repairs" -ForegroundColor White
+        Write-Host "  R                : Run all selected items" -ForegroundColor White
+        Write-Host "  C                : Clear all selections" -ForegroundColor White
+        Write-Host "  P1 / P2 / P3     : Toggle presets (Basic / Advanced / Repairs)" -ForegroundColor White
+        Write-Host "  SYS-REBOOT       : Reboot the computer normally" -ForegroundColor White
+        Write-Host "  SYS-REBOOT-SAFE  : Configure Safe Mode and reboot" -ForegroundColor White
+        Write-Host "  HELP             : Show this help screen" -ForegroundColor White
+        Write-Host "  Q                : Quit WinSuture" -ForegroundColor White
+        Write-Host "========================================================================================" -ForegroundColor Cyan
+        Pause
+        $script:alertMessage = "Help menu closed."
+        $script:alertColor = "Yellow"
+        return
+    }
+    elseif ($wizInput -eq "OPT") {
+        $script:activeScreen = "O"
+        $script:alertMessage = "Switched to Optimizations screen."
+        $script:alertColor = "Green"
+        return
+    }
+    elseif ($wizInput -eq "REP") {
+        $script:activeScreen = "R"
+        $script:alertMessage = "Switched to Repairs screen."
+        $script:alertColor = "Green"
+        return
+    }
+    elseif ($wizInput -eq "M" -or $wizInput -eq "MAIN") {
+        $script:activeScreen = "M"
+        $script:alertMessage = "Returned to Main Menu."
+        $script:alertColor = "Green"
+        return
+    }
+    elseif ($wizInput -match '^R\d+$') {
+        # Restore Point rollback selected
+        $idxStr = $wizInput.Substring(1)
+        $idx = [int]$idxStr - 1
+        if ($idx -lt 0 -or $idx -ge $restorePoints.Count) {
+            $script:alertMessage = "Invalid Restore Point selection: '$wizInput'"
+            $script:alertColor = "Red"
+            return
+        }
+        
+        $selectedRP = $restorePoints[$idx]
+        Draw-Header -subtitle "System Restore Point Rollback Confirmation"
+        Write-Host "[!] WARNING: You have selected Windows System Restore Point:" -ForegroundColor Red
+        Write-Host "    Sequence #$($selectedRP.SequenceNumber) - $($selectedRP.Description) (Created: $($selectedRP.CreationTime))" -ForegroundColor White
+        Write-Host ""
+        Write-Host "    * System Restore will roll back system settings, drivers, and core OS state." -ForegroundColor Yellow
+        Write-Host "    * Your computer WILL restart automatically to finalize this action." -ForegroundColor Yellow
+        Write-Host "    * Make sure all work is saved before continuing." -ForegroundColor Yellow
+        Write-Host ""
+        $confirm = Read-Host "  Are you sure you want to rollback to this restore point? (Type 'CONFIRM_RESTORE')"
+        if ($confirm.Trim() -eq "CONFIRM_RESTORE") {
+            Draw-Header -subtitle "Restoring system state..."
+            Write-Host "[*] Restoring system using Sequence Number $($selectedRP.SequenceNumber)..." -ForegroundColor Yellow
+            try {
+                Restore-Computer -RestorePoint $selectedRP.SequenceNumber -ErrorAction Stop
+            } catch {
+                Write-Host "[-] Programmatic restore failed: $_" -ForegroundColor Red
+                Write-Host "[*] Attempting to launch native restore utility (rstrui.exe)..." -ForegroundColor Yellow
+                try {
+                    Start-Process "rstrui.exe"
+                    Write-Host "[+] Opened rstrui.exe successfully." -ForegroundColor Green
+                } catch {
+                    Write-Host "[-] Failed to open rstrui.exe: $_" -ForegroundColor Red
+                }
+                Pause
+            }
+        } else {
+            $script:alertMessage = "Restore rollback cancelled by user."
+            $script:alertColor = "Yellow"
+        }
+        return
+    }
+    elseif ($wizInput -match '^F\d+$') {
+        # Local Backup Folder selected
+        $idxStr = $wizInput.Substring(1)
+        $idx = [int]$idxStr - 1
+        if ($idx -lt 0 -or $idx -ge $backupDirs.Count) {
+            $script:alertMessage = "Invalid Backup Folder selection: '$wizInput'"
+            $script:alertColor = "Red"
+            return
+        }
+        
+        $selectedFolder = $backupDirs[$idx]
+        Invoke-FolderRestoreSubmenu -folder $selectedFolder
+        return
+    }
+    else {
+        $script:alertMessage = "Invalid command or selection: '$wizInput'"
+        $script:alertColor = "Red"
+        return
+    }
+}
+
 # Main input loop
 $alertMessage = ""
 $alertColor = "Yellow"
@@ -389,6 +918,19 @@ while ($true) {
     # If on Main Menu, display it and continue loop
     if ($script:activeScreen -eq "M") {
         Draw-Header
+        
+        Write-Host "  System OS:  $osName (Build $osVersion)" -ForegroundColor White
+        
+        if (-not $isFullyTested) {
+            Write-Host "========================================================================================" -ForegroundColor Cyan
+            Write-Host "                           !!! UNTESTED WINDOWS VERSION !!!                             " -ForegroundColor Red
+            Write-Host "========================================================================================" -ForegroundColor Cyan
+            Write-Host "  WARNING: WinSuture is running on a newer/untested Windows build ($osVersion)." -ForegroundColor Yellow
+            Write-Host "  System directories, registry layouts, and services may have changed." -ForegroundColor White
+            Write-Host "  Applying tweaks or repairs on this version could lead to unexpected results." -ForegroundColor White
+            Write-Host "  [!] RECOMMENDATION: Please run a full backup (Create Restore Point) before proceeding." -ForegroundColor Yellow
+            Write-Host "========================================================================================" -ForegroundColor Cyan
+        }
         
         if (-not $isSafeMode) {
             Write-Host "========================================================================================" -ForegroundColor Cyan
@@ -409,7 +951,7 @@ while ($true) {
         Write-Host "  Category Screens:" -ForegroundColor Cyan
         Write-Host "    [1] Optimizations (20 Performance Tweaks)" -ForegroundColor White
         Write-Host "    [2] Repairs       (22 Critical System Fixes)" -ForegroundColor White
-        Write-Host "    [3] Backup & Rest (8 Backup & Restore Utilities)" -ForegroundColor White
+        Write-Host "    [3] System Restores (Interactive Restore Wizard)" -ForegroundColor White
         Write-Host ""
         
         # Calculate selected items count
@@ -417,11 +959,21 @@ while ($true) {
         $selectedText = if ($selectedCount -gt 0) { "$selectedCount items selected" } else { "none selected" }
         $selectedColor = if ($selectedCount -gt 0) { "Green" } else { "Gray" }
         
+        $reversibleCount = ($tweaks | Where-Object { $_.Selected -eq $true -and $_.Reversible -eq $true }).Count
+        $reversibleText = if ($reversibleCount -gt 0) { "$reversibleCount reversible items" } else { "none" }
+        $reversibleColor = if ($reversibleCount -gt 0) { "Green" } else { "Gray" }
+        
         Write-Host "  Global Actions:" -ForegroundColor Cyan
-        Write-Host "    [R] Run Selected Tasks (" -NoNewline -ForegroundColor White
+        Write-Host "    [R] Run/Apply Selected Tasks (" -NoNewline -ForegroundColor White
         Write-Host $selectedText -NoNewline -ForegroundColor $selectedColor
         Write-Host ")" -ForegroundColor White
+        Write-Host "    [D] Revert/Disable Selected Tasks (" -NoNewline -ForegroundColor White
+        Write-Host $reversibleText -NoNewline -ForegroundColor $reversibleColor
+        Write-Host ")" -ForegroundColor White
         Write-Host "    [C] Clear All Selections" -ForegroundColor White
+        Write-Host "    [HELP] Show all commands" -ForegroundColor White
+        Write-Host "    [SYS-REBOOT] Reboot computer" -ForegroundColor White
+        Write-Host "    [SYS-REBOOT-SAFE] Reboot in Safe Mode" -ForegroundColor White
         Write-Host "    [Q] Quit WinSuture" -ForegroundColor White
         Write-Host ""
         Write-Host "========================================================================================" -ForegroundColor Cyan
@@ -432,7 +984,7 @@ while ($true) {
             $alertMessage = ""
         }
         
-        Write-Host "  Select a category screen [1, 2, 3] or a global action [R, C, Q]" -ForegroundColor DarkCyan
+        Write-Host "  Select a category screen [1, 2, 3] or a global action [R, D, C, HELP, SYS-REBOOT, Q]" -ForegroundColor DarkCyan
         $input = Read-Host "  WinSuture CLI"
         $input = $input.Trim().Replace("'", "").Replace('"', "").ToUpper()
         
@@ -446,15 +998,53 @@ while ($true) {
             $alertMessage = "Opened Repairs screen."
             $alertColor = "Green"
         }
-        elseif ($input -eq "3" -or $input -eq "BKP") {
-            $script:activeScreen = "B"
-            $alertMessage = "Opened Backup & Restore screen."
+        elseif ($input -eq "3" -or $input -eq "RST") {
+            $script:activeScreen = "RS"
+            $alertMessage = "Opened System Restores screen."
             $alertColor = "Green"
         }
         elseif ($input -eq "Q") {
             Clear-ConsoleScreen
             Write-Host "[+] Thank you for using WinSuture! Goodbye." -ForegroundColor Green
             exit
+        }
+        elseif ($input -eq "SYS-REBOOT") {
+            Write-Host "  [*] Rebooting computer in 5 seconds..." -ForegroundColor Yellow
+            Start-Sleep -Seconds 5
+            Restart-Computer -Force
+            exit
+        }
+        elseif ($input -eq "SYS-REBOOT-SAFE") {
+            Write-Host "  [*] Configuring system for Safe Mode and rebooting in 5 seconds..." -ForegroundColor Yellow
+            bcdedit /set "{current}" safeboot minimal | Out-Null
+            Start-Sleep -Seconds 5
+            Restart-Computer -Force
+            exit
+        }
+        elseif ($input -eq "HELP") {
+            Draw-Header -subtitle "WinSuture CLI Help"
+            Write-Host "  Available Commands:" -ForegroundColor Yellow
+            Write-Host "  <id>,<id>        : Toggle selection of items (e.g., 1, 3, 5)" -ForegroundColor White
+            Write-Host "  <id> -D          : Display detailed description for an item (e.g., 1 -D)" -ForegroundColor White
+            Write-Host "  OPT              : Switch to Optimizations screen" -ForegroundColor White
+            Write-Host "  REP              : Switch to Repairs screen" -ForegroundColor White
+            Write-Host "  BKP              : Switch to System Backups screen" -ForegroundColor White
+            Write-Host "  RST              : Switch to System Restores screen" -ForegroundColor White
+            Write-Host "  M / MAIN         : Return to Main Menu" -ForegroundColor White
+            Write-Host "  S                : Scan active category for recommended tweaks/repairs" -ForegroundColor White
+            Write-Host "  R                : Run all selected items" -ForegroundColor White
+            Write-Host "  D                : Revert/Disable all selected reversible items" -ForegroundColor White
+            Write-Host "  C                : Clear all selections" -ForegroundColor White
+            Write-Host "  P1 / P2 / P3     : Toggle presets (Basic / Advanced / Repairs)" -ForegroundColor White
+            Write-Host "  B                : Run Consolidated Advanced Backups (from BKP screen)" -ForegroundColor White
+            Write-Host "  SYS-REBOOT       : Reboot the computer normally" -ForegroundColor White
+            Write-Host "  SYS-REBOOT-SAFE  : Configure Safe Mode and reboot" -ForegroundColor White
+            Write-Host "  HELP             : Show this help screen" -ForegroundColor White
+            Write-Host "  Q                : Quit WinSuture" -ForegroundColor White
+            Write-Host "========================================================================================" -ForegroundColor Cyan
+            Pause
+            $alertMessage = "Help menu closed."
+            $alertColor = "Yellow"
         }
         elseif ($input -eq "C") {
             for ($i = 0; $i -lt $tweaks.Count; $i++) {
@@ -466,6 +1056,9 @@ while ($true) {
         elseif ($input -eq "R") {
             Invoke-RunSelected
         }
+        elseif ($input -eq "D") {
+            Invoke-RunSelected -Action "Disable"
+        }
         else {
             $alertMessage = "Invalid option: '$input'"
             $alertColor = "Red"
@@ -474,6 +1067,11 @@ while ($true) {
     }
 
     # Generate partitioned layout lines and subtitle for the active screen
+    if ($script:activeScreen -eq "RS") {
+        Invoke-RestoreWizard
+        continue
+    }
+    
     $partitioned = $null
     $subtitle = ""
     if ($script:activeScreen -eq "O") {
@@ -483,10 +1081,6 @@ while ($true) {
     elseif ($script:activeScreen -eq "R") {
         $partitioned = Get-PartitionedLayout -items $reps
         $subtitle = "Presets: P3 (System Repairs) | C (Clear All) | M (Main Menu)"
-    }
-    elseif ($script:activeScreen -eq "B") {
-        $partitioned = Get-PartitionedLayout -items $backups
-        $subtitle = "Consolidated Backups: B | C (Clear All) | M (Main Menu)"
     }
     
     Draw-Header -subtitle $subtitle
@@ -512,13 +1106,20 @@ while ($true) {
             elseif ($left.Type -eq "Item") {
                 $item = $left.Item
                 $selected = if ($item.Selected) { "[x]" } else { "[ ]" }
-                $scanSym = if ($item.ScanStatus -eq "Healthy") { "v" } elseif ($item.ScanStatus -eq "Recommended") { "*" } elseif ($item.ScanStatus -eq "Error") { "?" } else { " " }
-                $dangerSym = if ($item.Danger -eq "Dangerous") { "!" } else { " " }
-                $leftText = "{0}{1} {2}{3,2}. {4}" -f $selected, $scanSym, $dangerSym, $item.Id, $item.Name
-                
-                if ($item.Selected) { $leftColor = "Green" }
-                elseif ($item.ScanStatus -eq "Recommended") { $leftColor = "Yellow" }
-                elseif ($item.Danger -eq "Dangerous") { $leftColor = "Red" }
+                if (-not $item.IsSupported) {
+                    $scanSym = "U"
+                    $dangerSym = " "
+                    $leftText = "{0}{1} {2}{3,2}. {4}" -f "[ ]", $scanSym, $dangerSym, $item.Id, $item.Name
+                    $leftColor = "DarkGray"
+                } else {
+                    $scanSym = if ($item.ScanStatus -eq "Healthy") { "v" } elseif ($item.ScanStatus -eq "Recommended") { "*" } elseif ($item.ScanStatus -eq "Error") { "?" } else { " " }
+                    $dangerSym = if ($item.Danger -eq "Dangerous") { "!" } else { " " }
+                    $leftText = "{0}{1} {2}{3,2}. {4}" -f $selected, $scanSym, $dangerSym, $item.Id, $item.Name
+                    
+                    if ($item.Selected) { $leftColor = "Green" }
+                    elseif ($item.ScanStatus -eq "Recommended") { $leftColor = "Yellow" }
+                    elseif ($item.Danger -eq "Dangerous") { $leftColor = "Red" }
+                }
             }
         }
         
@@ -533,13 +1134,20 @@ while ($true) {
             elseif ($right.Type -eq "Item") {
                 $item = $right.Item
                 $selected = if ($item.Selected) { "[x]" } else { "[ ]" }
-                $scanSym = if ($item.ScanStatus -eq "Healthy") { "v" } elseif ($item.ScanStatus -eq "Recommended") { "*" } elseif ($item.ScanStatus -eq "Error") { "?" } else { " " }
-                $dangerSym = if ($item.Danger -eq "Dangerous") { "!" } else { " " }
-                $rightText = "{0}{1} {2}{3,2}. {4}" -f $selected, $scanSym, $dangerSym, $item.Id, $item.Name
-                
-                if ($item.Selected) { $rightColor = "Green" }
-                elseif ($item.ScanStatus -eq "Recommended") { $rightColor = "Yellow" }
-                elseif ($item.Danger -eq "Dangerous") { $rightColor = "Red" }
+                if (-not $item.IsSupported) {
+                    $scanSym = "U"
+                    $dangerSym = " "
+                    $rightText = "{0}{1} {2}{3,2}. {4}" -f "[ ]", $scanSym, $dangerSym, $item.Id, $item.Name
+                    $rightColor = "DarkGray"
+                } else {
+                    $scanSym = if ($item.ScanStatus -eq "Healthy") { "v" } elseif ($item.ScanStatus -eq "Recommended") { "*" } elseif ($item.ScanStatus -eq "Error") { "?" } else { " " }
+                    $dangerSym = if ($item.Danger -eq "Dangerous") { "!" } else { " " }
+                    $rightText = "{0}{1} {2}{3,2}. {4}" -f $selected, $scanSym, $dangerSym, $item.Id, $item.Name
+                    
+                    if ($item.Selected) { $rightColor = "Green" }
+                    elseif ($item.ScanStatus -eq "Recommended") { $rightColor = "Yellow" }
+                    elseif ($item.Danger -eq "Dangerous") { $rightColor = "Red" }
+                }
             }
         }
         
@@ -550,7 +1158,7 @@ while ($true) {
     }
     
     Write-Host "========================================================================================" -ForegroundColor Cyan
-    Write-Host "  Legend: [x] Checked | v Scanned Healthy | * Scanned Recommended | ! Dangerous (Red)" -ForegroundColor DarkGray
+    Write-Host "  Legend: [x] Checked | v Scanned Healthy | * Scanned Recommended | U Unsupported | ! Dangerous (Red)" -ForegroundColor DarkGray
     Write-Host "========================================================================================" -ForegroundColor Cyan
     
     if ($alertMessage) {
@@ -559,8 +1167,7 @@ while ($true) {
         $alertMessage = ""
     }
     
-    # User Input
-    Write-Host "  Inputs: <id,id,...> to toggle | OPT/REP/BKP to switch | M for Main Menu | S to Scan | R to Run | Q to Quit" -ForegroundColor DarkCyan
+    Write-Host "  Inputs: <id,id,...> to toggle | OPT/REP/RST to switch | M for Main Menu | S to Scan | R to Run | D to Revert | HELP | Q to Quit" -ForegroundColor DarkCyan
     $input = Read-Host "  WinSuture CLI"
     $input = $input.Trim().Replace("'", "").Replace('"', "").ToUpper()
     
@@ -575,6 +1182,42 @@ while ($true) {
         Write-Host "[+] Thank you for using WinSuture! Goodbye." -ForegroundColor Green
         exit
     }
+    elseif ($input -eq "SYS-REBOOT") {
+        Write-Host "  [*] Rebooting computer in 5 seconds..." -ForegroundColor Yellow
+        Start-Sleep -Seconds 5
+        Restart-Computer -Force
+        exit
+    }
+    elseif ($input -eq "SYS-REBOOT-SAFE") {
+        Write-Host "  [*] Configuring system for Safe Mode and rebooting in 5 seconds..." -ForegroundColor Yellow
+        bcdedit /set "{current}" safeboot minimal | Out-Null
+        Start-Sleep -Seconds 5
+        Restart-Computer -Force
+        exit
+    }
+    elseif ($input -eq "HELP") {
+        Draw-Header -subtitle "WinSuture CLI Help"
+        Write-Host "  Available Commands:" -ForegroundColor Yellow
+        Write-Host "  <id>,<id>        : Toggle selection of items (e.g., 1, 3, 5)" -ForegroundColor White
+        Write-Host "  <id> -D          : Display detailed description for an item (e.g., 1 -D)" -ForegroundColor White
+        Write-Host "  OPT              : Switch to Optimizations screen" -ForegroundColor White
+        Write-Host "  REP              : Switch to Repairs screen" -ForegroundColor White
+        Write-Host "  RST              : Switch to System Restores screen" -ForegroundColor White
+        Write-Host "  M / MAIN         : Return to Main Menu" -ForegroundColor White
+        Write-Host "  S                : Scan active category for recommended tweaks/repairs" -ForegroundColor White
+        Write-Host "  R                : Run all selected items" -ForegroundColor White
+        Write-Host "  D                : Revert/Disable all selected reversible items" -ForegroundColor White
+        Write-Host "  C                : Clear all selections" -ForegroundColor White
+        Write-Host "  P1 / P2 / P3     : Toggle presets (Basic / Advanced / Repairs)" -ForegroundColor White
+        Write-Host "  SYS-REBOOT       : Reboot the computer normally" -ForegroundColor White
+        Write-Host "  SYS-REBOOT-SAFE  : Configure Safe Mode and reboot" -ForegroundColor White
+        Write-Host "  HELP             : Show this help screen" -ForegroundColor White
+        Write-Host "  Q                : Quit WinSuture" -ForegroundColor White
+        Write-Host "========================================================================================" -ForegroundColor Cyan
+        Pause
+        $alertMessage = "Help menu closed."
+        $alertColor = "Yellow"
+    }
     elseif ($input -eq "OPT") {
         $script:activeScreen = "O"
         $alertMessage = "Switched to Optimizations screen."
@@ -585,9 +1228,9 @@ while ($true) {
         $alertMessage = "Switched to Repairs screen."
         $alertColor = "Green"
     }
-    elseif ($input -eq "BKP") {
-        $script:activeScreen = "B"
-        $alertMessage = "Switched to Backup & Restore screen."
+    elseif ($input -eq "RST") {
+        $script:activeScreen = "RS"
+        $alertMessage = "Switched to System Restores screen."
         $alertColor = "Green"
     }
     elseif ($input -eq "M" -or $input -eq "MAIN") {
@@ -605,7 +1248,7 @@ while ($true) {
     elseif ($input -eq "P1") {
         # Toggle Basic optimizations preset (only works/affects items on screen O)
         for ($i = 0; $i -lt $tweaks.Count; $i++) {
-            if ($tweaks[$i].Category -eq "Optimization" -and $tweaks[$i].Packages -contains "Basic") {
+            if ($tweaks[$i].Category -eq "Optimization" -and $tweaks[$i].Packages -contains "Basic" -and $tweaks[$i].IsSupported) {
                 $tweaks[$i].Selected = -not $tweaks[$i].Selected
             }
         }
@@ -615,7 +1258,7 @@ while ($true) {
     elseif ($input -eq "P2") {
         # Toggle Advanced optimizations preset (only works/affects items on screen O)
         for ($i = 0; $i -lt $tweaks.Count; $i++) {
-            if ($tweaks[$i].Category -eq "Optimization" -and $tweaks[$i].Packages -contains "Advanced") {
+            if ($tweaks[$i].Category -eq "Optimization" -and $tweaks[$i].Packages -contains "Advanced" -and $tweaks[$i].IsSupported) {
                 $tweaks[$i].Selected = -not $tweaks[$i].Selected
             }
         }
@@ -625,45 +1268,14 @@ while ($true) {
     elseif ($input -eq "P3") {
         # Toggle System Repairs preset (only works/affects items on screen R)
         for ($i = 0; $i -lt $tweaks.Count; $i++) {
-            if ($tweaks[$i].Category -eq "Repair" -and $tweaks[$i].Packages -contains "Repairs") {
+            if ($tweaks[$i].Category -eq "Repair" -and $tweaks[$i].Packages -contains "Repairs" -and $tweaks[$i].IsSupported) {
                 $tweaks[$i].Selected = -not $tweaks[$i].Selected
             }
         }
         $alertMessage = "Toggled System Repairs Preset (P3)."
         $alertColor = "Green"
     }
-    elseif ($input -eq "B") {
-        # Only allow consolidated backups from screen B
-        if ($script:activeScreen -eq "B") {
-            Draw-Header -subtitle "Running Consolidated Advanced Backups..."
-            $global:WinSutureBackupDir = $null
-            
-            $backupItems = $tweaks | Where-Object { $_.Id -ge 43 -and $_.Id -le 46 }
-            foreach ($item in $backupItems) {
-                Write-Host "[*] Executing Task $($item.Id): $($item.Name)..." -ForegroundColor Yellow
-                $sb = Get-TweakScript -item $item
-                if ($null -ne $sb) {
-                    try {
-                        & $sb -Mode "Apply"
-                    } catch {
-                        Write-Host "    [FAILED] Error: $_" -ForegroundColor Red
-                    }
-                } else {
-                    Write-Host "    [FAILED] Error: Could not load script block" -ForegroundColor Red
-                }
-                Write-Host ""
-            }
-            Write-Host "========================================================================================" -ForegroundColor Cyan
-            Write-Host "  Advanced Backups Suite complete! Files saved in Desktop folder." -ForegroundColor Green
-            Write-Host "========================================================================================" -ForegroundColor Cyan
-            Pause
-            $alertMessage = "Advanced Backups Suite complete! Files saved in Desktop folder."
-            $alertColor = "Green"
-        } else {
-            $alertMessage = "Backups can only be run from the Backup & Restore screen (BKP)."
-            $alertColor = "Red"
-        }
-    }
+
     elseif ($input -eq "S") {
         # Only allow scanning from optimizations and repairs
         if ($script:activeScreen -eq "O" -or $script:activeScreen -eq "R") {
@@ -677,6 +1289,10 @@ while ($true) {
             $scanItems = $tweaks | Where-Object { $_.Category -eq $scanCategory }
             
             foreach ($t in $scanItems) {
+                if (-not $t.IsSupported) {
+                    $t.ScanStatus = "Unsupported"
+                    continue
+                }
                 $sb = Get-TweakScript -item $t
                 if ($null -eq $sb) {
                     $t.ScanStatus = "Error"
@@ -726,6 +1342,9 @@ while ($true) {
     elseif ($input -eq "R") {
         Invoke-RunSelected
     }
+    elseif ($input -eq "D") {
+        Invoke-RunSelected -Action "Disable"
+    }
     else {
         # Check if numbers input
         $indices = $input -split ","
@@ -742,7 +1361,6 @@ while ($true) {
                         $isItemOnActiveScreen = $false
                         if ($script:activeScreen -eq "O" -and $item.Category -eq "Optimization") { $isItemOnActiveScreen = $true }
                         elseif ($script:activeScreen -eq "R" -and $item.Category -eq "Repair") { $isItemOnActiveScreen = $true }
-                        elseif ($script:activeScreen -eq "B" -and $item.Category -eq "BackupRestore") { $isItemOnActiveScreen = $true }
                         
                         if ($isItemOnActiveScreen) {
                             $descItems += $item
@@ -781,12 +1399,16 @@ while ($true) {
                         $isItemOnActiveScreen = $false
                         if ($script:activeScreen -eq "O" -and $item.Category -eq "Optimization") { $isItemOnActiveScreen = $true }
                         elseif ($script:activeScreen -eq "R" -and $item.Category -eq "Repair") { $isItemOnActiveScreen = $true }
-                        elseif ($script:activeScreen -eq "B" -and $item.Category -eq "BackupRestore") { $isItemOnActiveScreen = $true }
                         
                         if ($isItemOnActiveScreen) {
-                            # Toggle selection
-                            $item.Selected = -not $item.Selected
-                            $successCount++
+                            if (-not $item.IsSupported) {
+                                $alertMessage = "Item $($item.Id) is not supported on this OS version."
+                                $alertColor = "Yellow"
+                            } else {
+                                # Toggle selection
+                                $item.Selected = -not $item.Selected
+                                $successCount++
+                            }
                         }
                     }
                 }
