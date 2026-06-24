@@ -9,6 +9,7 @@ if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdenti
 }
 
 # --- CONFIGURATION ---
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 $githubBaseUrl = "https://raw.githubusercontent.com/idealkingdom/WinSuture/main"
 $global:WinSutureScriptRoot = $PSScriptRoot
 
@@ -120,8 +121,8 @@ function Get-TweakScript {
     # Fallback to downloading raw script from GitHub raw URL
     $cloudUrl = "$githubBaseUrl/$($item.Path)"
     try {
-        $code = Invoke-RestMethod -Uri $cloudUrl -ErrorAction Stop
-        return [scriptblock]::Create($code)
+        $response = Invoke-WebRequest -Uri $cloudUrl -UseBasicParsing -ErrorAction Stop
+        return [scriptblock]::Create($response.Content)
     } catch {
         Write-Error "Failed to load script block from local path or cloud URL: $cloudUrl"
         return $null
@@ -150,11 +151,11 @@ function Load-ManifestFile {
     if ($null -eq $data) {
         $cloudUrl = "$githubBaseUrl/$filename"
         try {
-            $json = Invoke-RestMethod -Uri $cloudUrl -ErrorAction Stop
-            $data = ConvertFrom-Json $json
+            $response = Invoke-WebRequest -Uri $cloudUrl -UseBasicParsing -ErrorAction Stop
+            $data = ConvertFrom-Json $response.Content
         } catch {
             Write-Host "[-] Critical Error: Failed to load manifest file '$filename' locally or from $cloudUrl" -ForegroundColor Red
-            Write-Host "[-] Please check your internet connection or verify your \$githubBaseUrl path." -ForegroundColor Yellow
+            Write-Host "[-] Please check your internet connection or verify your `$githubBaseUrl path." -ForegroundColor Yellow
             Pause
             Exit
         }
