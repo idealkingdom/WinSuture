@@ -54,3 +54,9 @@ Set-ExecutionPolicy Bypass -Scope Process -Force
 WinSuture dynamically maps tweaks from JSON manifests (`optimizations.json`, `repairs.json`) and executes them in isolated Runspaces. 
 
 For detailed documentation on the individual scripts, mappings, and internal CLI logic, please refer to the [WinSuture Guide](WinSuture_Guide.md).
+
+---
+
+## ⚠️ Disclaimer
+
+**Use at your own risk.** WinSuture modifies core Windows registry keys, services, and system configurations. While it includes built-in undo functionality and prompts for System Restore points, the author is not responsible for any system instability, data loss, or bricked installations that may occur. Always ensure you have a backup of your important files before running any system optimization tool.
