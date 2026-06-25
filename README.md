@@ -27,6 +27,10 @@ Rather than relying on heavy executables or background services, WinSuture lever
 
 ## 🚀 Usage
 
+<p align="center">
+  <img src="assets/cli_view.png" alt="WinSuture PowerShell CLI Interface" width="800">
+</p>
+
 ### Option 1: Run Online (In-Memory)
 Open an **elevated Administrator PowerShell prompt** and run:
 ```powershell
