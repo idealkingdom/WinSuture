@@ -9,12 +9,29 @@ if ($Mode -eq "Check") {
     return (Test-Path $dir) -and ((Get-ChildItem $dir -Recurse -File -ErrorAction SilentlyContinue | Measure-Object -Property Length -Sum).Sum -gt 1GB)
 }
 elseif ($Mode -eq "Apply") {
-    Stop-Service -Name "wuauserv" -Force -ErrorAction SilentlyContinue
-    Stop-Service -Name "bits" -Force -ErrorAction SilentlyContinue
-    Stop-Service -Name "cryptsvc" -Force -ErrorAction SilentlyContinue
-    Remove-Item -Path "$env:SystemRoot\SoftwareDistribution" -Recurse -Force -ErrorAction SilentlyContinue
-    Remove-Item -Path "$env:SystemRoot\System32\catroot2" -Recurse -Force -ErrorAction SilentlyContinue
-    Start-Service -Name "wuauserv" -ErrorAction SilentlyContinue
-    Start-Service -Name "bits" -ErrorAction SilentlyContinue
-    Start-Service -Name "cryptsvc" -ErrorAction SilentlyContinue
+    $services = @("wuauserv", "bits", "cryptsvc", "msiserver")
+    foreach ($svc in $services) {
+        Stop-Service -Name $svc -Force -ErrorAction SilentlyContinue
+        $loopCount = 0
+        while ((Get-Service -Name $svc -ErrorAction SilentlyContinue).Status -ne 'Stopped' -and $loopCount -lt 15) {
+            Start-Sleep -Seconds 1
+            $loopCount++
+        }
+    }
+    
+    # Rename SoftwareDistribution instead of deleting it to preserve history/rollback
+    $sdPath = "$env:SystemRoot\SoftwareDistribution"
+    if (Test-Path $sdPath) {
+        Rename-Item -Path $sdPath -NewName "SoftwareDistribution.bak_$(Get-Date -Format 'yyyyMMddHHmmss')" -Force -ErrorAction SilentlyContinue
+    }
+    
+    # Rename Catroot2 defensively
+    $catPath = "$env:SystemRoot\System32\catroot2"
+    if (Test-Path $catPath) {
+        Rename-Item -Path $catPath -NewName "catroot2.bak_$(Get-Date -Format 'yyyyMMddHHmmss')" -Force -ErrorAction SilentlyContinue
+    }
+    
+    foreach ($svc in $services) {
+        Start-Service -Name $svc -ErrorAction SilentlyContinue
+    }
 }

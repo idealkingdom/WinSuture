@@ -1,4 +1,4 @@
-[
+﻿[
     {
         "Id":  43,
         "Category":  "BackupRestore",
@@ -14,7 +14,8 @@
         "Path":  "BackupRestore/43_CreateRestorePoint.ps1",
         "SupportedOS":  [
                             "All"
-                        ]
+                        ],
+        "Hash":  "9e396681964de013079602bc22dfe0dff7e3f546d8e97ba98bc3d6a09e590317"
     },
     {
         "Id":  44,
@@ -31,7 +32,8 @@
         "Path":  "BackupRestore/44_BackupRegistryHives.ps1",
         "SupportedOS":  [
                             "All"
-                        ]
+                        ],
+        "Hash":  "f332ca066a4bf25e2558bda01ce87472d639538d0dbb95ff3ada0d9865dc4345"
     },
     {
         "Id":  45,
@@ -48,7 +50,8 @@
         "Path":  "BackupRestore/45_BackupHostsFile.ps1",
         "SupportedOS":  [
                             "All"
-                        ]
+                        ],
+        "Hash":  "737ca396e3ba98c4e26369f8c6ff3f23c3fab125f161fb9d2f26b579ad7474e9"
     },
     {
         "Id":  46,
@@ -65,7 +68,8 @@
         "Path":  "BackupRestore/46_BackupNetworkConfig.ps1",
         "SupportedOS":  [
                             "All"
-                        ]
+                        ],
+        "Hash":  "7999d36ace3c1cad0cab10e8767120018aded844f8508c9cfe9f83c46c5d787a"
     },
     {
         "Id":  47,
@@ -82,7 +86,8 @@
         "Path":  "BackupRestore/47_RestoreSystemRestorePoint.ps1",
         "SupportedOS":  [
                             "All"
-                        ]
+                        ],
+        "Hash":  "395f55b8fb3eb7ec2412508905743db9d0e989a3030dcf2668608350cfc593e7"
     },
     {
         "Id":  48,
@@ -99,7 +104,8 @@
         "Path":  "BackupRestore/48_RestoreRegistryHives.ps1",
         "SupportedOS":  [
                             "All"
-                        ]
+                        ],
+        "Hash":  "fe591aca4331c843465e065ae0f710cd913fc6690cb0b77aa67f425a096a3110"
     },
     {
         "Id":  49,
@@ -116,7 +122,8 @@
         "Path":  "BackupRestore/49_RestoreHostsFile.ps1",
         "SupportedOS":  [
                             "All"
-                        ]
+                        ],
+        "Hash":  "da9e6ff23c6fdf773b0d6781dd04f60630835d53f22b1d80e4130fe7b2779559"
     },
     {
         "Id":  50,
@@ -133,6 +140,7 @@
         "Path":  "BackupRestore/50_RestoreNetworkConfig.ps1",
         "SupportedOS":  [
                             "All"
-                        ]
+                        ],
+        "Hash":  "8e504ae7b04a7761b7ab5a68c1c56f2a74dbd2a72c274c6f98fe031eab177f3b"
     }
 ]

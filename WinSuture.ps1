@@ -8,10 +8,35 @@ if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdenti
     Exit
 }
 
+# --- ENVIRONMENTAL SECURITY CHECKS ---
+if ($ExecutionContext.SessionState.LanguageMode -eq "ConstrainedLanguage") {
+    Write-Host "[-] WARNING: System is operating in Constrained Language Mode (WDAC/AppLocker)." -ForegroundColor Red
+    Write-Host "[-] Many dynamic optimizations and compiling routines will be blocked." -ForegroundColor Red
+    Write-Host "[-] Please run the compiled Offline payload if needed, or temporarily suspend policies." -ForegroundColor Yellow
+}
+
 # --- CONFIGURATION ---
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-$githubBaseUrl = "https://raw.githubusercontent.com/idealkingdom/WinSuture/main"
+# Hardcoded to specific immutable commit hash to prevent supply-chain tag mutations
+$githubBaseUrl = "https://raw.githubusercontent.com/idealkingdom/WinSuture/c8b24d3d91d28b1e5c422ca3dcb49241acfe5459"
 $global:WinSutureScriptRoot = $PSScriptRoot
+
+# Helper to write persistent logs
+function Write-WinSutureLog {
+    param(
+        [string]$Message,
+        [ValidateSet("INFO", "WARNING", "ERROR", "SUCCESS")]
+        [string]$Level = "INFO"
+    )
+    $logDir = "$env:ProgramData\WinSuture\logs"
+    if (-not (Test-Path $logDir)) {
+        New-Item -ItemType Directory -Path $logDir -Force | Out-Null
+    }
+    $logFile = Join-Path $logDir "winsuture_run.log"
+    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+    $logEntry = "[$timestamp] [$Level] $Message"
+    Add-Content -Path $logFile -Value $logEntry -ErrorAction SilentlyContinue
+}
 
 # Safe Mode detection (SAFEBOOT environment variable is present in Safe Mode)
 $isSafeMode = $null -ne [System.Environment]::GetEnvironmentVariable("SAFEBOOT")
@@ -105,13 +130,14 @@ function Get-TweakScript {
         $item
     )
     
+    $code = $null
+    
     # Check for local file path relative to the directory of this loader script
     if (-not [string]::IsNullOrEmpty($PSScriptRoot)) {
         $localPath = Join-Path $PSScriptRoot $item.Path
         if (Test-Path $localPath) {
             try {
                 $code = Get-Content -Path $localPath -Raw -ErrorAction Stop
-                return [scriptblock]::Create($code)
             } catch {
                 Write-Warning "Failed to read local file '$localPath'. Attempting cloud fallback..."
             }
@@ -119,14 +145,33 @@ function Get-TweakScript {
     }
     
     # Fallback to downloading raw script from GitHub raw URL
-    $cloudUrl = "$githubBaseUrl/$($item.Path)"
-    try {
-        $response = Invoke-WebRequest -Uri $cloudUrl -UseBasicParsing -ErrorAction Stop
-        return [scriptblock]::Create($response.Content)
-    } catch {
-        Write-Error "Failed to load script block from local path or cloud URL: $cloudUrl"
-        return $null
+    if ($null -eq $code) {
+        $cloudUrl = "$githubBaseUrl/$($item.Path)"
+        try {
+            $response = Invoke-WebRequest -Uri $cloudUrl -UseBasicParsing -ErrorAction Stop
+            $code = $response.Content
+        } catch {
+            Write-Error "Failed to load script block from local path or cloud URL: $cloudUrl"
+            return $null
+        }
     }
+
+    # Validate Payload SHA-256 Hash
+    if ($null -ne $item.Hash) {
+        $normalizedCode = $code.Replace("`r`n", "`n")
+        $bytes = [System.Text.Encoding]::UTF8.GetBytes($normalizedCode)
+        $hashObj = [System.Security.Cryptography.SHA256]::Create().ComputeHash($bytes)
+        $computedHash = [BitConverter]::ToString($hashObj).Replace("-", "").ToLower()
+        if ($computedHash -ne $item.Hash) {
+            Write-Host "[-] CRITICAL SECURITY ERROR: Payload hash mismatch for $($item.Path)!" -ForegroundColor Red
+            Write-Host "[-] Expected: $($item.Hash)" -ForegroundColor Red
+            Write-Host "[-] Computed: $computedHash" -ForegroundColor Red
+            Write-Host "[-] Execution blocked to prevent potential malware execution." -ForegroundColor Red
+            return $null
+        }
+    }
+
+    return [scriptblock]::Create($code)
 }
 
 # Helper to load a manifest file with local path and fallback to cloud
@@ -522,16 +567,90 @@ function Invoke-RunSelected {
     foreach ($item in $sortedItems) {
         $modeToRun = if ($item.Category -eq "BackupRestore") { "Apply" } else { $Action }
         Write-Host "[*] Executing Task $($item.Id): $($item.Name) ($modeToRun)..." -ForegroundColor Yellow
+        Write-WinSutureLog "Executing Task $($item.Id): $($item.Name) ($modeToRun)" "INFO"
+        
         $sb = Get-TweakScript -item $item
         if ($null -eq $sb) {
             Write-Host "    [FAILED] Error: Could not load script block" -ForegroundColor Red
+            Write-WinSutureLog "Task $($item.Id) FAILED: Could not load script block" "ERROR"
             continue
         }
+        
+        $ps = [PowerShell]::Create()
+        $escapedRoot = if ($null -ne $global:WinSutureScriptRoot) { $global:WinSutureScriptRoot.Replace("'", "''") } else { "" }
+        $escapedRestore = if ($null -ne $global:WinSutureRestoreFolder) { $global:WinSutureRestoreFolder.Replace("'", "''") } else { "" }
+        # Initialize necessary global state and Undo Engine wrapper for the runspace
+        $initCode = @"
+            `$global:WinSutureScriptRoot = '$escapedRoot'
+            `$global:WinSutureRestoreFolder = '$escapedRestore'
+            
+            function Write-WinSutureLog {
+                param([string]`$Message, [string]`$Level = 'INFO')
+                `$logDir = `"$env:ProgramData\WinSuture\logs`"
+                `$logFile = Join-Path `$logDir `"winsuture_run.log`"
+                `$timestamp = Get-Date -Format `"yyyy-MM-dd HH:mm:ss`"
+                Add-Content -Path `$logFile -Value `"[`$timestamp] [`$Level] `$Message`" -ErrorAction SilentlyContinue
+            }
+
+            # State Store wrapper for Granular Undo Engine
+            function Set-ItemProperty {
+                param(
+                    [Parameter(Mandatory=`$true, Position=0, ValueFromPipelineByPropertyName=`$true)] [string]`$Path,
+                    [Parameter(Mandatory=`$true, Position=1)] [string]`$Name,
+                    [Parameter(Mandatory=`$true, Position=2)] `$Value,
+                    [Parameter()] [string]`$Type,
+                    [Parameter()] [switch]`$Force,
+                    [Parameter()] `$ErrorAction
+                )
+                
+                # 1. Capture original value
+                `$oldValue = `$null
+                try { `$oldValue = (Microsoft.PowerShell.Management\Get-ItemProperty -Path `$Path -Name `$Name -ErrorAction Stop).`$Name } catch {}
+                
+                # 2. Save state
+                `$stateDir = `"$env:ProgramData\WinSuture\state`"
+                if (-not (Test-Path `$stateDir)) { New-Item -ItemType Directory -Path `$stateDir -Force | Out-Null }
+                `$stateFile = Join-Path `$stateDir "$($item.Id)_registry.json"
+                
+                `$stateObj = @{ Path=`$Path; Name=`$Name; OldValue=`$oldValue; NewValue=`$Value; Action='Set-ItemProperty' }
+                `$stateObj | ConvertTo-Json -Compress -Depth 5 | Add-Content -Path `$stateFile
+                
+                # 3. Call real cmdlet
+                if (`$PSBoundParameters.ContainsKey('Type')) {
+                    Microsoft.PowerShell.Management\Set-ItemProperty -Path `$Path -Name `$Name -Value `$Value -Type `$Type -Force:`$Force -ErrorAction SilentlyContinue
+                } else {
+                    Microsoft.PowerShell.Management\Set-ItemProperty -Path `$Path -Name `$Name -Value `$Value -Force:`$Force -ErrorAction SilentlyContinue
+                }
+            }
+"@
+        $ps.AddScript($initCode).AddScript($sb.ToString()).AddParameter("Mode", $modeToRun) | Out-Null
+        
         try {
-            & $sb -Mode $modeToRun
-            Write-Host "    [SUCCESS]" -ForegroundColor Green
+            $asyncResult = $ps.BeginInvoke()
+            $spinChars = @('|', '/', '-', '\')
+            $spinIdx = 0
+            while (-not $asyncResult.IsCompleted) {
+                Write-Progress -Activity "Executing Task $($item.Id): $($item.Name)" -Status "Running... $($spinChars[$spinIdx])" -PercentComplete -1
+                Start-Sleep -Milliseconds 100
+                $spinIdx = ($spinIdx + 1) % 4
+            }
+            Write-Progress -Activity "Executing Task $($item.Id): $($item.Name)" -Completed
+            
+            $ps.EndInvoke($asyncResult) | Out-Null
+            
+            if ($ps.Streams.Error.Count -gt 0) {
+                $err = $ps.Streams.Error[0].Exception.Message
+                Write-Host "    [FAILED] Error: $err" -ForegroundColor Red
+                Write-WinSutureLog "Task $($item.Id) FAILED: $err" "ERROR"
+            } else {
+                Write-Host "    [SUCCESS]" -ForegroundColor Green
+                Write-WinSutureLog "Task $($item.Id) SUCCESS" "SUCCESS"
+            }
         } catch {
             Write-Host "    [FAILED] Error: $_" -ForegroundColor Red
+            Write-WinSutureLog "Task $($item.Id) FAILED: $_" "ERROR"
+        } finally {
+            $ps.Dispose()
         }
         Write-Host ""
     }
@@ -666,11 +785,14 @@ function Invoke-FolderRestoreSubmenu {
                     if ($null -ne $sb) {
                         try {
                             & $sb -Mode "Apply"
+                            Write-WinSutureLog "Registry Restore SUCCESS" "SUCCESS"
                         } catch {
                             Write-Host "    [FAILED] Error: $_" -ForegroundColor Red
+                            Write-WinSutureLog "Registry Restore FAILED: $_" "ERROR"
                         }
                     } else {
                         Write-Host "    [FAILED] Error: Could not load script block" -ForegroundColor Red
+                        Write-WinSutureLog "Registry Restore FAILED: Could not load script block" "ERROR"
                     }
                     Write-Host ""
                 }
@@ -685,11 +807,14 @@ function Invoke-FolderRestoreSubmenu {
                     if ($null -ne $sb) {
                         try {
                             & $sb -Mode "Apply"
+                            Write-WinSutureLog "hosts File Restore SUCCESS" "SUCCESS"
                         } catch {
                             Write-Host "    [FAILED] Error: $_" -ForegroundColor Red
+                            Write-WinSutureLog "hosts File Restore FAILED: $_" "ERROR"
                         }
                     } else {
                         Write-Host "    [FAILED] Error: Could not load script block" -ForegroundColor Red
+                        Write-WinSutureLog "hosts File Restore FAILED: Could not load script block" "ERROR"
                     }
                     Write-Host ""
                 }
@@ -704,11 +829,14 @@ function Invoke-FolderRestoreSubmenu {
                     if ($null -ne $sb) {
                         try {
                             & $sb -Mode "Apply"
+                            Write-WinSutureLog "Network Config Restore SUCCESS" "SUCCESS"
                         } catch {
                             Write-Host "    [FAILED] Error: $_" -ForegroundColor Red
+                            Write-WinSutureLog "Network Config Restore FAILED: $_" "ERROR"
                         }
                     } else {
                         Write-Host "    [FAILED] Error: Could not load script block" -ForegroundColor Red
+                        Write-WinSutureLog "Network Config Restore FAILED: Could not load script block" "ERROR"
                     }
                     Write-Host ""
                 }

@@ -1,4 +1,4 @@
-[
+﻿[
     {
         "Id":  21,
         "Category":  "Repair",
@@ -14,7 +14,8 @@
         "Path":  "Repairs/21_ResetWindowsUpdateCache.ps1",
         "SupportedOS":  [
                             "All"
-                        ]
+                        ],
+        "Hash":  "f8198cbe07cc03548f903feb684a7a22dd42ed9a7c6bc731b6c240c1a0d41f40"
     },
     {
         "Id":  22,
@@ -31,7 +32,8 @@
         "Path":  "Repairs/22_ResetNetworkStack.ps1",
         "SupportedOS":  [
                             "All"
-                        ]
+                        ],
+        "Hash":  "3b68f67a2c5d0ae4d6fda2f8d5be19207fdf154d8e9e69dad19d52529c454f3d"
     },
     {
         "Id":  23,
@@ -48,7 +50,8 @@
         "Path":  "Repairs/23_RunSFCScan.ps1",
         "SupportedOS":  [
                             "All"
-                        ]
+                        ],
+        "Hash":  "b48c3b66e9565bacfdab4cd7ffa3e45e7b3862c5234222045350379fa5e147e4"
     },
     {
         "Id":  24,
@@ -65,7 +68,8 @@
         "Path":  "Repairs/24_RunDISMRepair.ps1",
         "SupportedOS":  [
                             "All"
-                        ]
+                        ],
+        "Hash":  "1a981fd5d1e24a7cfee53515e731b6dd87920557a3190ec54dc2930e79c39934"
     },
     {
         "Id":  25,
@@ -82,7 +86,8 @@
         "Path":  "Repairs/25_ComponentStoreCleanup.ps1",
         "SupportedOS":  [
                             "All"
-                        ]
+                        ],
+        "Hash":  "0e80edc74549aef6322fd292820d64c019036d25fdc3e6174f42ed9657f74ea8"
     },
     {
         "Id":  26,
@@ -99,7 +104,8 @@
         "Path":  "Repairs/26_ResetWindowsStore.ps1",
         "SupportedOS":  [
                             "All"
-                        ]
+                        ],
+        "Hash":  "5ccb2983c27c05b3db36a6672da21ef6792465353fd415dcdb0489eb50922089"
     },
     {
         "Id":  27,
@@ -116,7 +122,8 @@
         "Path":  "Repairs/27_ReregisterUWPApps.ps1",
         "SupportedOS":  [
                             "All"
-                        ]
+                        ],
+        "Hash":  "059fc71bbb98f5a3963aa4ec1c5697ee76e32595bb655f4aca24a2e455db6e49"
     },
     {
         "Id":  28,
@@ -133,7 +140,8 @@
         "Path":  "Repairs/28_RebuildWMIRepository.ps1",
         "SupportedOS":  [
                             "All"
-                        ]
+                        ],
+        "Hash":  "efc9f9a6ff25ebe9fcf3cf3efb98e1f05b6f31adb2bdd97ed485e5d06059fec7"
     },
     {
         "Id":  29,
@@ -150,7 +158,8 @@
         "Path":  "Repairs/29_ReregisterVSSDLLs.ps1",
         "SupportedOS":  [
                             "All"
-                        ]
+                        ],
+        "Hash":  "c78495570c8118e5f9c236ec7781854bd3b4487c542d033415af20d07bc0b6ec"
     },
     {
         "Id":  30,
@@ -167,7 +176,8 @@
         "Path":  "Repairs/30_ResetFirewallSettings.ps1",
         "SupportedOS":  [
                             "All"
-                        ]
+                        ],
+        "Hash":  "d83d2a83382522d1e56cb302772ba46c80e6e1ae8aeb31a7ffc69fd26b0236d3"
     },
     {
         "Id":  31,
@@ -184,7 +194,8 @@
         "Path":  "Repairs/31_ResetLocalGroupPolicies.ps1",
         "SupportedOS":  [
                             "All"
-                        ]
+                        ],
+        "Hash":  "1f57f28c5b39f030fbe42758150f36b715aaadbbc740bf93dc934ee8a9c9e752"
     },
     {
         "Id":  32,
@@ -201,7 +212,8 @@
         "Path":  "Repairs/32_FlushRegisterDNS.ps1",
         "SupportedOS":  [
                             "All"
-                        ]
+                        ],
+        "Hash":  "e75b344d19663a085c7515c2563339767be89d993d76fdf9a46a8f6128a53c85"
     },
     {
         "Id":  33,
@@ -218,7 +230,8 @@
         "Path":  "Repairs/33_ClearPrintSpoolerQueue.ps1",
         "SupportedOS":  [
                             "All"
-                        ]
+                        ],
+        "Hash":  "c0fa6d180b1b3e1a07162cfc4e19650fab53b565df75fe643dcf875d98d112c5"
     },
     {
         "Id":  34,
@@ -235,7 +248,8 @@
         "Path":  "Repairs/34_FixLNKFileAssociations.ps1",
         "SupportedOS":  [
                             "All"
-                        ]
+                        ],
+        "Hash":  "4b7a50d30ca41a91bc61243b0c9ff3faabc9e0132a53a1cb93bb128b5d4437e2"
     },
     {
         "Id":  35,
@@ -252,7 +266,8 @@
         "Path":  "Repairs/35_RebuildSearchIndex.ps1",
         "SupportedOS":  [
                             "All"
-                        ]
+                        ],
+        "Hash":  "6adc8198d56d445516ccfb10e8939c1b20dd9bcfb1d4804871d960a01825378a"
     },
     {
         "Id":  36,
@@ -269,7 +284,8 @@
         "Path":  "Repairs/36_RepairMSIEngine.ps1",
         "SupportedOS":  [
                             "All"
-                        ]
+                        ],
+        "Hash":  "f1e964c33193105eeb069c121787298bf78979df4981cca94b614a6201635863"
     },
     {
         "Id":  37,
@@ -286,7 +302,8 @@
         "Path":  "Repairs/37_RestoreDefaulthosts.ps1",
         "SupportedOS":  [
                             "All"
-                        ]
+                        ],
+        "Hash":  "13c90376bda461b95a5ab0a6c8c91a5e820dca865388bbd3483f1874c864abae"
     },
     {
         "Id":  38,
@@ -303,7 +320,8 @@
         "Path":  "Repairs/38_DefaultServicesStartup.ps1",
         "SupportedOS":  [
                             "All"
-                        ]
+                        ],
+        "Hash":  "e188c9a99154942e1a408b06c483eead58a077aa6d10a05649239e8eb37cfa83"
     },
     {
         "Id":  39,
@@ -320,7 +338,8 @@
         "Path":  "Repairs/39_ClearShellIconCache.ps1",
         "SupportedOS":  [
                             "All"
-                        ]
+                        ],
+        "Hash":  "4bd4e5641e3db2d671730e8ed7fa792572b5c96c519c6b9d1443854a94a09d55"
     },
     {
         "Id":  40,
@@ -337,7 +356,8 @@
         "Path":  "Repairs/40_RebuildBCD.ps1",
         "SupportedOS":  [
                             "All"
-                        ]
+                        ],
+        "Hash":  "68b963267a748292c99f1977c494e283b7d2c36f7f458f43a632000a5372d648"
     },
     {
         "Id":  41,
@@ -354,7 +374,8 @@
         "Path":  "Repairs/41_ResetFilePermissions.ps1",
         "SupportedOS":  [
                             "All"
-                        ]
+                        ],
+        "Hash":  "1a5b329062d1dbbac6b38a6556dc8676bdc37eeaf7b40fd1acc8c2eb1546f1ce"
     },
     {
         "Id":  42,
@@ -371,6 +392,7 @@
         "Path":  "Repairs/42_ResetRegistryPermissions.ps1",
         "SupportedOS":  [
                             "All"
-                        ]
+                        ],
+        "Hash":  "14127b0f37b6ddd1715a601b69046d77ef485322c6f6fba2bc3c92d2f0050188"
     }
 ]
