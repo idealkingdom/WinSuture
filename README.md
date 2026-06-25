@@ -1,41 +1,43 @@
-# 🛡️ WinSuture
+# WinSuture
 
-WinSuture is a modular, parameters-driven interactive CLI suite built for Windows 10 and 11 power users. It offers a single dashboard containing **20 advanced performance optimizations**, **22 critical system repairs**, and **8 automated backup/restore utilities**.
+**WinSuture** is a modular, zero-bloat CLI suite designed to optimize, repair, and backup Windows environments. 
 
-The entire tool is designed to run locally (fully offline) if the subfolders are present in the workspace, or fall back to dynamically streaming component script blocks directly from GitHub endpoints if running standalone.
-
----
-
-## ⚡ Key Highlights
-* **Main Menu Landing Screen**: A unified startup dashboard that integrates admin checks, system details, and the Safe Mode recommendation warning directly on launch.
-* **Category Screens**: Dedicated visual screens for **Optimizations** (`OPT`) and **Repairs** (`REP`) to prevent terminal clutter and ensure no items scroll off the viewport.
-* **Dual-Column Layout**: Items within each category screen are grouped cleanly under descriptive subheaders (e.g., `Gaming`, `Networking`, `System UI`) and formatted side-by-side.
-* **Precedence Safety**: Backup tasks (creating restore points, registry exports, hosts backups) are prompted dynamically before any system modifications are run and execute *first*.
-* **Safe Mode Status**: Detects if the system is running in Windows Normal Mode versus Safe Mode and dynamically displays warning contexts directly on the Main Menu landing page.
-* **Compatibility**: All Write-Host formatting parameter conflicts have been resolved to support Windows PowerShell 5.1 and PowerShell Core.
+Rather than relying on heavy executables or background services, WinSuture leverages pure PowerShell to surgically repair system corruption, disable telemetry, and apply advanced system optimizations natively.
 
 ---
 
-## 📂 Reorganized Workspace Layout
-```
-WinSuture/
- ├── WinSuture.ps1             # Main interactive dashboard launcher
- ├── optimizations.json        # Database manifest containing optimization metadata (1-20)
- ├── repairs.json              # Database manifest containing repair metadata (21-42)
- ├── backuprestore.json        # Database manifest containing backup/restore metadata (43-50)
- ├── WinSuture_Guide.md        # Comprehensive documentation guide for all 50 items
- ├── Optimizations/            # 20 standalone parameter-driven optimization scripts
- ├── Repairs/                  # 22 standalone parameter-driven system repair scripts
- └── BackupRestore/            # 8 standalone backup and restore scripts
+## ⚡ Core Features
+
+* **Surgical Precision:** Includes 22 targeted system repairs (leveraging native DISM/SFC logic) and over 20 advanced performance optimizations ranging from network latency tweaks to UI debloating.
+* **Granular Rollbacks:** Unlike other tools, WinSuture features an undo engine. Registry modifications are state-saved individually, allowing you to seamlessly revert any specific optimization if needed.
+* **Precedence Safety:** Built-in safeguards prompt you to export your registry hives, backup network configurations, and create System Restore points *before* execution begins.
+* **100% Portable & Offline-Capable:** Runs entirely in memory from a single command, or can be downloaded as a ZIP for fully offline execution. Natively checks for local script blocks and seamlessly falls back to cloud fetching if needed.
+* **Zero Bloatware:** Pure PowerShell. No installation, no background services, no electron wrappers, and absolutely zero telemetry or tracking. 
+* **Tamper Protection:** Every individual script payload is strictly validated against SHA-256 hash manifests before execution to ensure supply-chain integrity.
+
+---
+
+## 🚀 Usage
+
+### Option 1: Run Online (In-Memory)
+Open an **elevated Administrator PowerShell prompt** and run:
+```powershell
+irm https://raw.githubusercontent.com/idealkingdom/WinSuture/main/WinSuture.ps1 | iex
 ```
 
----
-
-## 🚀 How to Launch
-Open **PowerShell as Administrator** and run:
+### Option 2: Run Offline
+1. Download the [WinSuture.zip](https://github.com/idealkingdom/WinSuture/raw/main/WinSuture.zip) package and extract it.
+2. Open an **elevated Administrator PowerShell prompt**.
+3. Navigate to the extracted folder and run:
 ```powershell
 Set-ExecutionPolicy Bypass -Scope Process -Force
-& ".\WinSuture.ps1"
+.\WinSuture.ps1
 ```
 
-For detailed explanations of all available tweaks, category mappings, and CLI settings, refer to the [WinSuture Guide](WinSuture_Guide.md).
+---
+
+## 📂 Architecture
+
+WinSuture dynamically maps tweaks from JSON manifests (`optimizations.json`, `repairs.json`) and executes them in isolated Runspaces. 
+
+For detailed documentation on the individual scripts, mappings, and internal CLI logic, please refer to the [WinSuture Guide](WinSuture_Guide.md).
