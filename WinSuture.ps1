@@ -878,7 +878,8 @@ function Invoke-RestoreWizard {
         $baseDir = $global:WinSutureScriptRoot
     }
     if ($null -eq $baseDir -or $baseDir -eq "") {
-        $baseDir = Get-Location
+        $baseDir = "$env:SystemDrive\WinSuture\Backups"
+        if (-not (Test-Path $baseDir)) { New-Item -ItemType Directory -Path $baseDir -Force | Out-Null }
     }
     $backupDirs = @()
     try {

@@ -18,7 +18,8 @@ if ($Mode -eq "Check") {
         $baseDir = Split-Path -Path $baseDir -Parent
     }
     if ($null -eq $baseDir -or $baseDir -eq "") {
-        $baseDir = Get-Location
+        $baseDir = "$env:SystemDrive\WinSuture\Backups"
+        if (-not (Test-Path $baseDir)) { New-Item -ItemType Directory -Path $baseDir -Force | Out-Null }
     }
     
     $backups = Get-ChildItem -Path $baseDir -Filter "WinSuture_Backup_*" -Directory -ErrorAction SilentlyContinue
@@ -42,7 +43,8 @@ elseif ($Mode -eq "Apply") {
             $baseDir = Split-Path -Path $baseDir -Parent
         }
         if ($null -eq $baseDir -or $baseDir -eq "") {
-            $baseDir = Get-Location
+            $baseDir = "$env:SystemDrive\WinSuture\Backups"
+        if (-not (Test-Path $baseDir)) { New-Item -ItemType Directory -Path $baseDir -Force | Out-Null }
         }
         
         $timestamp = Get-Date -Format 'yyyyMMdd_HHmmss'

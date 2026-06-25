@@ -11,7 +11,8 @@ if ($null -ne $global:WinSutureScriptRoot) {
     $baseDir = Split-Path -Path $baseDir -Parent
 }
 if ($null -eq $baseDir -or $baseDir -eq "") {
-    $baseDir = Get-Location
+    $baseDir = "$env:SystemDrive\WinSuture\Backups"
+        if (-not (Test-Path $baseDir)) { New-Item -ItemType Directory -Path $baseDir -Force | Out-Null }
 }
 
 if ($Mode -eq "Check") {
