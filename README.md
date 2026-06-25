@@ -19,6 +19,7 @@ Rather than relying on heavy executables or background services, WinSuture lever
 * **Surgical Precision:** Includes 22 targeted system repairs (leveraging native DISM/SFC logic) and over 20 advanced performance optimizations ranging from network latency tweaks to UI debloating.
 * **Granular Rollbacks:** Unlike other tools, WinSuture features an undo engine. Registry modifications are state-saved individually, allowing you to seamlessly revert any specific optimization if needed.
 * **Precedence Safety:** Built-in safeguards prompt you to export your registry hives, backup network configurations, and create System Restore points *before* execution begins.
+* **Smart Compatibility Scanning:** Automatically checks your OS version and build against each optimization, ensuring that unsupported tweaks are hidden or blocked to prevent system instability.
 * **100% Portable & Offline-Capable:** Runs entirely in memory from a single command, or can be downloaded as a ZIP for fully offline execution. Natively checks for local script blocks and seamlessly falls back to cloud fetching if needed.
 * **Zero Bloatware:** Pure PowerShell. No installation, no background services, no electron wrappers, and absolutely zero telemetry or tracking. 
 * **Tamper Protection:** Every individual script payload is strictly validated against SHA-256 hash manifests before execution to ensure supply-chain integrity.
