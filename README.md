@@ -1,5 +1,9 @@
 # WinSuture
 
+<p align="center">
+  <img src="assets/hero_view.png" alt="WinSuture Landing Page" width="800">
+</p>
+
 **WinSuture** is a modular, zero-bloat CLI suite designed to optimize, repair, and backup Windows environments. 
 
 Rather than relying on heavy executables or background services, WinSuture leverages pure PowerShell to surgically repair system corruption, disable telemetry, and apply advanced system optimizations natively.
@@ -7,6 +11,10 @@ Rather than relying on heavy executables or background services, WinSuture lever
 ---
 
 ## ⚡ Core Features
+
+<p align="center">
+  <img src="assets/features_view.png" alt="WinSuture Features" width="800">
+</p>
 
 * **Surgical Precision:** Includes 22 targeted system repairs (leveraging native DISM/SFC logic) and over 20 advanced performance optimizations ranging from network latency tweaks to UI debloating.
 * **Granular Rollbacks:** Unlike other tools, WinSuture features an undo engine. Registry modifications are state-saved individually, allowing you to seamlessly revert any specific optimization if needed.
