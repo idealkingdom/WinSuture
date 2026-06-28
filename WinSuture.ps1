@@ -424,7 +424,7 @@ function Invoke-RunSelected {
             return
         }
         elseif ($bInput -eq "S" -or $bInput -eq "SKIP") {
-            foreach ($key in $selectedBackups.Keys.Clone()) {
+            foreach ($key in @($selectedBackups.Keys)) {
                 $selectedBackups[$key] = $false
             }
             $backupLoop = $false
@@ -599,8 +599,7 @@ function Invoke-RunSelected {
                     [Parameter(Mandatory=`$true, Position=1)] [string]`$Name,
                     [Parameter(Mandatory=`$true, Position=2)] `$Value,
                     [Parameter()] [string]`$Type,
-                    [Parameter()] [switch]`$Force,
-                    [Parameter()] `$ErrorAction
+                    [Parameter()] [switch]`$Force
                 )
                 
                 # 1. Capture original value
